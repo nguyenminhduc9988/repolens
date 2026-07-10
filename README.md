@@ -16,6 +16,8 @@ health grade, security scan, and hotspot report for any repo, local or on GitHub
 uvx repolens-kit facebook/react    # ← that's the whole setup
 ```
 
+**or try it online, no install:** **[lens.bigwinner.work](https://lens.bigwinner.work)** — paste any public repo
+
 <img src="docs/img/report-blast.png" alt="repolens interactive report — blast radius mode with file inspector" width="100%">
 
 </div>
