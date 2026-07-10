@@ -1,0 +1,54 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "repolens"
+version = "0.1.0"
+description = "X-ray any codebase in one command — interactive dependency graph, blast radius, health grade, security scan, and hotspot map in a single HTML file."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [{ name = "Duc Nguyen" }]
+keywords = [
+    "codebase",
+    "visualization",
+    "dependency-graph",
+    "architecture",
+    "static-analysis",
+    "code-quality",
+    "developer-tools",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Documentation",
+]
+dependencies = ["rich>=13.0"]
+
+[project.urls]
+Homepage = "https://github.com/nguyenminhduc9988/repolens"
+Repository = "https://github.com/nguyenminhduc9988/repolens"
+Issues = "https://github.com/nguyenminhduc9988/repolens/issues"
+
+[project.scripts]
+repolens = "repolens.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/repolens"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
