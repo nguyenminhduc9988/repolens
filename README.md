@@ -7,13 +7,13 @@
 **One line in, one file out** — an interactive architecture map, blast-radius explorer,
 health grade, security scan, and hotspot report for any repo, local or on GitHub.
 
-[![PyPI](https://img.shields.io/pypi/v/repolens?color=3987e5)](https://pypi.org/project/repolens/)
-[![Python](https://img.shields.io/pypi/pyversions/repolens?color=199e70)](https://pypi.org/project/repolens/)
+[![PyPI](https://img.shields.io/pypi/v/repolens-kit?color=3987e5)](https://pypi.org/project/repolens-kit/)
+[![Python](https://img.shields.io/pypi/pyversions/repolens-kit?color=199e70)](https://pypi.org/project/repolens-kit/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/nguyenminhduc9988/repolens/actions/workflows/ci.yml/badge.svg)](https://github.com/nguyenminhduc9988/repolens/actions)
 
 ```bash
-uvx repolens facebook/react        # ← that's the whole setup
+uvx repolens-kit facebook/react    # ← that's the whole setup
 ```
 
 <img src="docs/img/report-blast.png" alt="repolens interactive report — blast radius mode with file inspector" width="100%">
@@ -25,11 +25,11 @@ uvx repolens facebook/react        # ← that's the whole setup
 ## One-liners
 
 ```bash
-uvx repolens .                     # analyze the repo you're standing in (zero install)
-uvx repolens pallets/flask         # analyze any GitHub repo by shorthand
-uvx repolens https://github.com/fastapi/fastapi
-pipx run repolens .                # same, via pipx
-pip install repolens && repolens . # the classic way
+uvx repolens-kit .                 # analyze the repo you're standing in (zero install)
+uvx repolens-kit pallets/flask     # analyze any GitHub repo by shorthand
+uvx repolens-kit https://github.com/fastapi/fastapi
+pipx run repolens-kit .            # same, via pipx
+pip install repolens-kit && repolens .  # installs the `repolens` command
 ```
 
 Every run prints a rich terminal summary **and** writes a **single self-contained HTML file**
@@ -101,7 +101,7 @@ print(report["health"]["grade"], report["repo"]["edges"])
 ### In CI
 
 ```bash
-pip install repolens
+pip install repolens-kit
 repolens . --no-open --no-html --json report.json
 python -c "import json,sys; sys.exit(json.load(open('report.json'))['health']['score'] < 70)"
 ```
