@@ -274,3 +274,26 @@ def test_tar_stream_max_files_cap():
     buf.seek(0)
     result = _scan_tar_stream(buf, "r", None, [], max_files=3)
     assert len(result.files) == 3
+
+
+def test_fqn_import_resolution():
+    from repolens.graph import build_graph
+    from repolens.languages import extract_imports
+    from repolens.scanner import SourceFile
+
+    files = [
+        SourceFile("app/src/main/java/com/acme/core/Engine.java", "Java",
+                   "package com.acme.core;\npublic class Engine {}\n", 2),
+        SourceFile("app/src/main/java/com/acme/api/Handler.java", "Java",
+                   "import com.acme.core.Engine;\n"
+                   "import static com.acme.core.Engine.start;\n", 2),
+        SourceFile("lib/my_app/repo.ex", "Elixir", "defmodule MyApp.Repo do\nend\n", 2),
+        SourceFile("lib/my_app/user.ex", "Elixir", "alias MyApp.Repo\n", 1),
+        SourceFile("src/Foo/Bar/Baz.php", "PHP", "<?php class Baz {}\n", 1),
+        SourceFile("src/App.php", "PHP", "<?php\nuse Foo\\Bar\\Baz;\n", 1),
+    ]
+    imports = {i: extract_imports(f.language, f.text) for i, f in enumerate(files)}
+    g = build_graph(files, imports)
+    assert (1, 0) in g.edges, "java fully-qualified + static import should resolve"
+    assert (3, 2) in g.edges, "elixir alias should resolve via snake_case paths"
+    assert (5, 4) in g.edges, "php namespace use should resolve via path suffix"

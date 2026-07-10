@@ -1,6 +1,6 @@
 """repolens — x-ray any codebase in one command."""
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 from .analyzer import analyze  # noqa: E402,F401  (public API)
 

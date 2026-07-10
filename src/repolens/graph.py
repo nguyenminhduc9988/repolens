@@ -79,13 +79,29 @@ def _module_index(files: List[SourceFile]) -> Dict[str, List[int]]:
                 if "/" in v:
                     keys.add(v.rsplit("/", 1)[0])
             else:
-                keys.add(base)
+                # every trailing path suffix, so fully-qualified names
+                # (java/kotlin/c#/go module paths) match at directory boundaries:
+                # a/b/c/D → D, c/D, b/c/D, …
+                parts = v.split("/")
+                for k in range(1, min(len(parts), 10) + 1):
+                    keys.add("/".join(parts[-k:]))
         for k in keys:
             idx[k].append(i)
     return idx
 
 
 _TESTY_PART = re.compile(r"(^|/)(tests?|__tests__|specs?|fixtures|examples?|mocks?|docs?)(/|$)")
+
+# languages whose imports are fully-qualified names ending in the unit itself
+# (class/module) — resolved by matching path suffixes, not by trimming the tail
+FQN_LANGS = {"Java", "Kotlin", "Scala", "Groovy", "C#", "Swift", "PHP",
+             "Haskell", "Julia", "Perl", "Elixir"}
+
+_CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+
+
+def _snake(segment: str) -> str:
+    return _CAMEL.sub("_", segment).lower()
 
 
 def _pick(cands: List[int], files: List[SourceFile], src_id: Optional[int]) -> Optional[int]:
@@ -151,20 +167,42 @@ def _resolve(spec: str, src: SourceFile, files: List[SourceFile], path_index: Di
                     return hit
                 parts = parts[:-1]
         return try_path(posixpath.join(src_dir, spec))
+    def suffix_probe(slashed: str) -> Optional[int]:
+        # longest path-suffix match first: a/b/C → b/C → C
+        parts = [p for p in slashed.split("/") if p]
+        for start in range(len(parts)):
+            hit = _pick(module_index.get("/".join(parts[start:]), []), files, src_id)
+            if hit is not None:
+                return hit
+        return None
+
     if "/" in spec and not spec.startswith(("@", "http")):
         hit = try_path(posixpath.join(src_dir, spec)) or try_path(spec)
         if hit is not None:
             return hit
-        # go-style: package path suffix match
-        return _pick(module_index.get(spec.split("/")[-1], []), files, src_id)
+        # go module paths / monorepo absolute imports: longest suffix wins
+        return suffix_probe(spec)
 
-    # 2. Dotted module names (python, java, kotlin, c#, php namespaces)
-    dotted = spec.replace("\\", ".").strip(".")
+    # 2. Dotted module names (python, java, kotlin, c#, php namespaces, perl)
+    dotted = spec.replace("\\", ".").replace("::", ".").strip(".")
+    if dotted.endswith(".*"):                    # java/kotlin wildcard → the package
+        dotted = dotted[:-2]
     for probe in (dotted, dotted.replace(".", "/")):
         hit = _pick(module_index.get(probe, []), files, src_id)
         if hit is not None:
             return hit
-    # progressively drop trailing segments: a.b.c → a/b/c.py, a/b.py
+
+    if src.language in FQN_LANGS:
+        # fully-qualified name: the unit is the LAST segment — match path
+        # suffixes, dropping leading namespace segments that aren't on disk
+        hit = suffix_probe(dotted.replace(".", "/"))
+        if hit is None and "." in dotted:              # static import: com.x.Z.member → com.x.Z
+            hit = suffix_probe(dotted.rsplit(".", 1)[0].replace(".", "/"))
+        if hit is None and src.language == "Elixir":   # MyApp.Repo → my_app/repo
+            hit = suffix_probe("/".join(_snake(p) for p in dotted.split(".")))
+        return hit
+
+    # python-style: progressively drop trailing segments: a.b.c → a/b/c.py, a/b.py
     parts = dotted.split(".")
     while len(parts) > 1:
         parts = parts[:-1]

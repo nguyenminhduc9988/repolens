@@ -97,7 +97,7 @@ IMPORT_PATTERNS: Dict[str, List[re.Pattern]] = {
         re.compile(r"""require\s*\(\s*['"]([^'"]+)['"]\s*\)"""),
         re.compile(r"""import\s*\(\s*['"]([^'"]+)['"]\s*\)"""),
     ],
-    "Java": [re.compile(r"^\s*import\s+(?:static\s+)?([\w.]+)\s*;", re.M)],
+    "Java": [re.compile(r"^\s*import\s+(?:static\s+)?([\w.]+(?:\.\*)?)\s*;", re.M)],
     "Go": [
         re.compile(r'^\s*import\s+(?:\w+\s+)?"([^"]+)"', re.M),
         re.compile(r'^\s*(?:\w+\s+)?"([^"]+)"\s*$', re.M),  # inside import ( ... ) blocks
