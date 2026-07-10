@@ -97,6 +97,20 @@ _TESTY_PART = re.compile(r"(^|/)(tests?|__tests__|specs?|fixtures|examples?|mock
 FQN_LANGS = {"Java", "Kotlin", "Scala", "Groovy", "C#", "Swift", "PHP",
              "Haskell", "Julia", "Perl", "Elixir"}
 
+# platform namespaces can never live inside the repo — straight to external
+_PLATFORM_PREFIXES = ("java.", "javax.", "jakarta.", "kotlin.", "kotlinx.",
+                      "scala.", "System.", "Microsoft.", "Foundation.", "UIKit.")
+
+# a fully-qualified/module import may only resolve to a file its runtime can load
+_FAMILY = {"Java": "jvm", "Kotlin": "jvm", "Scala": "jvm", "Groovy": "jvm",
+           "JavaScript": "js", "TypeScript": "js", "Vue": "js", "Svelte": "js",
+           "C": "c", "C++": "c"}
+
+
+def _same_family(a: str, b: str) -> bool:
+    return _FAMILY.get(a, a) == _FAMILY.get(b, b)
+
+
 _CAMEL = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
 
 
@@ -168,10 +182,13 @@ def _resolve(spec: str, src: SourceFile, files: List[SourceFile], path_index: Di
                 parts = parts[:-1]
         return try_path(posixpath.join(src_dir, spec))
     def suffix_probe(slashed: str) -> Optional[int]:
-        # longest path-suffix match first: a/b/C → b/C → C
+        # longest path-suffix match first: a/b/C → b/C → C; a module import can
+        # only land on a file the importer's runtime could actually load
         parts = [p for p in slashed.split("/") if p]
         for start in range(len(parts)):
-            hit = _pick(module_index.get("/".join(parts[start:]), []), files, src_id)
+            cands = [c for c in module_index.get("/".join(parts[start:]), [])
+                     if _same_family(src.language, files[c].language)]
+            hit = _pick(cands, files, src_id)
             if hit is not None:
                 return hit
         return None
@@ -185,6 +202,8 @@ def _resolve(spec: str, src: SourceFile, files: List[SourceFile], path_index: Di
 
     # 2. Dotted module names (python, java, kotlin, c#, php namespaces, perl)
     dotted = spec.replace("\\", ".").replace("::", ".").strip(".")
+    if dotted.startswith(_PLATFORM_PREFIXES):    # java.sql, System.IO, … — never in-repo
+        return None
     if dotted.endswith(".*"):                    # java/kotlin wildcard → the package
         dotted = dotted[:-2]
     for probe in (dotted, dotted.replace(".", "/")):

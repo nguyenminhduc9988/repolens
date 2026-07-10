@@ -297,3 +297,24 @@ def test_fqn_import_resolution():
     assert (1, 0) in g.edges, "java fully-qualified + static import should resolve"
     assert (3, 2) in g.edges, "elixir alias should resolve via snake_case paths"
     assert (5, 4) in g.edges, "php namespace use should resolve via path suffix"
+
+
+def test_no_cross_language_or_platform_false_edges():
+    from repolens.graph import build_graph
+    from repolens.languages import extract_imports
+    from repolens.scanner import SourceFile
+
+    files = [
+        SourceFile("tests/steps/sql.py", "Python", "x = 1\n", 1),
+        SourceFile("src/main/java/com/acme/Db.java", "Java",
+                   "import java.sql.Connection;\nimport java.sql.*;\n", 2),
+        SourceFile("src/main/java/com/acme/sql/Runner.java", "Java",
+                   "package com.acme.sql;\n", 1),
+        SourceFile("src/main/java/com/acme/App.java", "Java",
+                   "import com.acme.sql.Runner;\n", 1),
+    ]
+    imports = {i: extract_imports(f.language, f.text) for i, f in enumerate(files)}
+    g = build_graph(files, imports)
+    assert (1, 0) not in g.edges, "java.sql must not resolve to a python file"
+    assert not g.dependents.get(0), "sql.py must have no java dependents"
+    assert (3, 2) in g.edges, "real in-repo FQN import must still resolve"
