@@ -163,7 +163,9 @@ a { color: var(--accent-2); text-decoration: none; }
 .side .credit { margin-top: auto; color: var(--muted); font-size: 10.5px; font-family: var(--mono); line-height: 1.7; }
 
 /* ─── main ───────────────────────────────────────────── */
-.main { display: flex; flex-direction: column; min-width: 0; animation: rise .45s var(--ease) .1s both; }
+/* min-height:0 — without it this grid item grows past the viewport-locked
+   shell and the inner views can never overflow-scroll */
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; animation: rise .45s var(--ease) .1s both; }
 .tabs {
   display: flex; gap: 2px; padding: 8px 14px 0; border-bottom: 1px solid var(--border);
   background: var(--surface); overflow-x: auto;
@@ -214,6 +216,13 @@ a { color: var(--accent-2); text-decoration: none; }
 }
 .hud-search input:focus { width: 210px; }
 .hud-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+.hud-seg { gap: 3px; color: var(--muted); font-family: var(--mono); font-size: 10.5px; }
+.hud-seg button {
+  background: transparent; border: 0; color: var(--ink-2); cursor: pointer;
+  font: 11px var(--mono); padding: 2px 7px; border-radius: 999px;
+}
+.hud-seg button:hover { color: var(--ink); }
+.hud-seg button.on { background: var(--accent); color: #fff; }
 .hud-tip {
   position: absolute; left: 14px; bottom: 12px; pointer-events: none;
   color: var(--muted); font: 10.5px var(--mono);
@@ -384,11 +393,13 @@ td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: 
       <svg id="graph"></svg>
       <div class="canvas-hud">
         <span class="hud-chip hud-search"><span class="ic">⌕</span><input id="graphSearch" type="search" placeholder="find a node…" aria-label="search files in graph"></span>
-        <span class="hud-chip"><label><input type="checkbox" id="lblToggle"> all labels</label></span>
+        <span class="hud-chip hud-seg" id="lblSeg">labels:
+          <button data-lbl="auto" class="on">auto</button><button data-lbl="all">all</button><button data-lbl="none">none</button>
+        </span>
         <span id="graphLegend" style="display:contents"></span>
         <span class="hud-chip" id="graphNoteWrap" style="display:none"><span id="graphNote"></span></span>
       </div>
-      <div class="hud-tip" id="hudTip">labels: hubs by default · zoom in or search to reveal more · scroll to zoom, drag to pan</div>
+      <div class="hud-tip" id="hudTip">auto labels show what fits, most-connected first · zoom in for more · click a node to focus its neighborhood</div>
     </div>
     <div class="view" id="view-map">
       <div class="pad">
@@ -639,43 +650,65 @@ function computeBlast(id) {
 }
 const tid = (x) => typeof x === "object" ? x.id : x;
 
-let sim, nodeSel, linkSel, labelSel, zoomG;
-let zoomK = 1, query = "";
-// hubs: the most-connected files get a permanent label so big graphs aren't anonymous
-const degOf = (f) => f.imports.length + f.importedBy.length;
-const hubSet = new Set(files.slice()
-  .sort((a, b) => degOf(b) - degOf(a) || b.loc - a.loc)
-  .slice(0, Math.min(40, Math.ceil(files.length * 0.15)))
-  .map(f => f.id));
+let sim, nodeSel, linkSel, labelSel, zoomG, graphSvg, gw = 800, gh = 600, rScaleRef;
+let query = "", labelMode = "auto";            // auto | all | none
 const matches = (d) => d.path.toLowerCase().includes(query);
-function labelVisible(d) {
-  if (query) return matches(d);
-  if ($("#lblToggle").checked) return true;
-  if (selected && (d.id === selected.id || neighborSet.has(d.id))) return true;
-  if (zoomK >= 1.5) return true;               // zoomed in → reveal everything
-  return hubSet.has(d.id);
+const degOf = (f) => f.imports.length + f.importedBy.length;
+// importance: connectivity first, then reach, then sheer size
+const importance = (f) => f.importedBy.length * 2 + f.imports.length + f.blast + f.loc / 300;
+const byImportance = files.slice().sort((a, b) => importance(b) - importance(a));
+
+function declutter() {
+  // map-engine style: walk nodes by importance, project to screen space,
+  // keep a label only if its text box doesn't collide with one already kept
+  const t = d3.zoomTransform(graphSvg.node());
+  const kept = [], out = new Set();
+  for (const f of byImportance) {
+    if (f.x == null) continue;
+    const x = t.applyX(f.x), y = t.applyY(f.y);
+    if (x < -30 || x > gw + 30 || y < -20 || y > gh + 20) continue;   // offscreen
+    const name = f.path.split("/").pop();
+    const w = rScaleRef(f.loc) * t.k + name.length * 6.4 + 10, h = 16;
+    const b = {x0: x - 4, y0: y - h / 2, x1: x + w, y1: y + h / 2};
+    let clash = false;
+    for (const o of kept) {
+      if (b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0) { clash = true; break; }
+    }
+    if (!clash) { kept.push(b); out.add(f.id); if (out.size >= 300) break; }
+  }
+  return out;
 }
+
 function updateLabels() {
-  if (labelSel) labelSel.style("display", d => labelVisible(d) ? null : "none");
+  if (!labelSel) return;
+  let show;
+  if (query) show = (d) => matches(d);                                  // search wins
+  else if (selected) {                                                  // focus wins: related only
+    const keep = new Set([selected.id, ...neighborSet,
+                          ...(mode === "blast" ? blastSet : [])]);
+    show = (d) => keep.has(d.id);
+  } else if (labelMode === "none") show = () => false;
+  else if (labelMode === "all") show = () => true;
+  else { const vis = declutter(); show = (d) => vis.has(d.id); }
+  labelSel.style("display", d => show(d) ? null : "none");
 }
 
 function initGraph() {
   const box = $("#view-graph").getBoundingClientRect();
-  const gw = Math.max(320, box.width), gh = Math.max(320, box.height);
-  const svg = d3.select("#graph");
+  gw = Math.max(320, box.width); gh = Math.max(320, box.height);
+  const svg = graphSvg = d3.select("#graph");
   svg.attr("viewBox", [0, 0, gw, gh]);
   zoomG = svg.append("g");
-  let zoomWasIn = false;
+  let zt;
   const zoom = d3.zoom().scaleExtent([0.15, 8]).on("zoom", (e) => {
     zoomG.attr("transform", e.transform);
-    zoomK = e.transform.k;
-    const zoomIn = zoomK >= 1.5;
-    if (zoomIn !== zoomWasIn) { zoomWasIn = zoomIn; updateLabels(); }
+    clearTimeout(zt);
+    zt = setTimeout(updateLabels, 120);        // re-declutter once panning/zooming rests
   });
   svg.call(zoom);
 
-  const small = files.length <= 130;   // small graphs get labels + roomier layout
-  const rScale = d3.scaleSqrt().domain([0, d3.max(files, f => f.loc) || 1])
+  const small = files.length <= 130;   // small graphs get a roomier layout
+  const rScale = rScaleRef = d3.scaleSqrt().domain([0, d3.max(files, f => f.loc) || 1])
     .range(small ? [6, 26] : [4, 18]);
   sim = d3.forceSimulation(files)
     .force("link", d3.forceLink(links).id(d => d.id).distance(small ? 78 : 50).strength(0.3))
@@ -700,10 +733,8 @@ function initGraph() {
     .attr("font-size", small ? 10.5 : 9.5).attr("fill", css("--ink-2")).attr("font-family", css("--mono"))
     .attr("dx", d => rScale(d.loc) + 4).attr("dy", 3.5)
     .attr("paint-order", "stroke").attr("stroke", css("--bg")).attr("stroke-width", 3)
-    .style("pointer-events", "none");
-  if (small) $("#hudTip").style.display = "none";
-  $("#lblToggle").checked = small;
-  updateLabels();
+    .style("display", "none").style("pointer-events", "none");
+  sim.on("end", updateLabels);
 
   sim.on("tick", () => {
     linkSel.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
@@ -725,7 +756,11 @@ function initGraph() {
   svg.on("click", () => selectNode(null));
 
   if (droppedNote) { $("#graphNote").textContent = droppedNote; $("#graphNoteWrap").style.display = ""; }
-  $("#lblToggle").addEventListener("change", updateLabels);
+  $("#lblSeg").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    labelMode = b.dataset.lbl;
+    $("#lblSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+    updateLabels();
+  }));
   paintGraph();
 
   // settle, then zoom-to-fit the whole constellation
