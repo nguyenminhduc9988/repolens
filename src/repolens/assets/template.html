@@ -3,236 +3,436 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>__TITLE__ · repolens</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='14' cy='14' r='9' fill='none' stroke='%236366f1' stroke-width='3'/%3E%3Cline x1='21' y1='21' x2='29' y2='29' stroke='%2322d3ee' stroke-width='3.5' stroke-linecap='round'/%3E%3Ccircle cx='14' cy='14' r='3' fill='%2322d3ee'/%3E%3C/svg%3E">
 <style>
 :root {
-  --page: #0d0d0d;
-  --surface: #1a1a19;
-  --surface-2: #232322;
-  --ink: #ffffff;
-  --ink-2: #c3c2b7;
-  --muted: #898781;
-  --grid: #2c2c2a;
-  --baseline: #383835;
-  --ring: rgba(255,255,255,0.10);
-  --s1: #3987e5; --s2: #199e70; --s3: #c98500; --s4: #008300;
-  --s5: #9085e9; --s6: #e66767; --s7: #d55181; --s8: #d95926;
-  --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
-  --accent: #3987e5;
-}
-@media (prefers-color-scheme: light) {
-  :root {
-    --page: #f9f9f7;
-    --surface: #fcfcfb;
-    --surface-2: #f0efec;
-    --ink: #0b0b0b;
-    --ink-2: #52514e;
-    --muted: #898781;
-    --grid: #e1e0d9;
-    --baseline: #c3c2b7;
-    --ring: rgba(11,11,11,0.10);
-    --s1: #2a78d6; --s2: #1baf7a; --s3: #eda100; --s4: #008300;
-    --s5: #4a3aa7; --s6: #e34948; --s7: #e87ba4; --s8: #eb6834;
-    --accent: #2a78d6;
-  }
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --elevated: #1a1a26;
+  --elevated-2: #222232;
+  --border: #1e1e2c;
+  --border-hi: #32324a;
+  --ink: #f1f5f9;
+  --ink-2: #94a3b8;
+  --muted: #64748b;
+  --accent: #6366f1;
+  --accent-2: #22d3ee;
+  --glow: rgba(99, 102, 241, 0.35);
+  --good: #22c55e; --warning: #f59e0b; --serious: #f97316; --critical: #ef4444;
+  --s1: #6366f1; --s2: #22d3ee; --s3: #f59e0b; --s4: #22c55e;
+  --s5: #e879f9; --s6: #fb7185; --s7: #38bdf8; --s8: #a3e635;
+  --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+html, body { margin: 0; padding: 0; height: 100%; }
 body {
-  background: var(--page); color: var(--ink);
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 14px; line-height: 1.5;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font); font-size: 13.5px; line-height: 1.5;
+  overflow: hidden;
 }
-a { color: var(--accent); text-decoration: none; }
-.wrap { max-width: 1360px; margin: 0 auto; padding: 24px 28px 80px; }
+a { color: var(--accent-2); text-decoration: none; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-thumb { background: var(--elevated-2); border-radius: 5px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hi); }
+::-webkit-scrollbar-track { background: transparent; }
+::selection { background: var(--glow); }
 
-/* header */
-header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 6px 0 18px; }
-.brand { font-weight: 700; font-size: 15px; letter-spacing: .04em; color: var(--muted); }
-.brand b { color: var(--ink); }
-h1 { font-size: 26px; margin: 0; font-weight: 700; }
-.sub { color: var(--muted); font-size: 13px; }
-.grade {
-  margin-left: auto; display: flex; align-items: center; gap: 14px;
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }
-.grade-badge {
-  width: 64px; height: 64px; border-radius: 14px; display: grid; place-items: center;
-  font-size: 34px; font-weight: 800; color: #fff;
-}
-.grade-meta { text-align: right; }
-.grade-meta .score { font-size: 20px; font-weight: 700; }
-.grade-meta .lbl { color: var(--muted); font-size: 12px; }
 
-/* tiles */
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 12px; margin-bottom: 20px; }
-.tile {
-  background: var(--surface); border: 1px solid var(--ring); border-radius: 12px;
-  padding: 14px 16px;
+/* ─── topbar ─────────────────────────────────────────── */
+.topbar {
+  height: 54px; display: flex; align-items: center; gap: 16px;
+  padding: 0 18px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #101018, #0c0c13);
+  animation: rise .4s var(--ease) both;
 }
-.tile .v { font-size: 24px; font-weight: 700; }
-.tile .l { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.logo { display: flex; align-items: center; gap: 9px; user-select: none; }
+.logo svg { flex: none; }
+.logo .name {
+  font-family: var(--mono); font-weight: 700; font-size: 15px; letter-spacing: .12em;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.topbar .sep { width: 1px; height: 24px; background: var(--border); }
+.repo-id { min-width: 0; }
+.repo-id .rn { font-weight: 700; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.repo-id .rs { color: var(--muted); font-size: 11px; font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.gen-meta { text-align: right; color: var(--muted); font-size: 10.5px; font-family: var(--mono); line-height: 1.45; }
+.grade-pill {
+  display: flex; align-items: center; gap: 10px; padding: 5px 12px 5px 6px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+}
+.grade-pill .g {
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--mono); font-weight: 800; font-size: 16px; color: #0a0a0f;
+}
+.grade-pill .s { font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); }
+.grade-pill .s b { color: var(--ink); font-size: 14px; }
 
-/* cards & layout */
-.card {
-  background: var(--surface); border: 1px solid var(--ring); border-radius: 14px;
-  padding: 18px 20px; margin-bottom: 20px;
+/* ─── shell ──────────────────────────────────────────── */
+.shell {
+  display: grid; grid-template-columns: 252px minmax(0, 1fr) 324px;
+  height: calc(100vh - 54px);
 }
-.card h2 { font-size: 15px; margin: 0 0 4px; font-weight: 700; }
-.card .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-@media (max-width: 980px) { .grid2 { grid-template-columns: 1fr; } }
+@media (max-width: 1160px) { .shell { grid-template-columns: 252px minmax(0, 1fr); } .inspector { display: none; } }
+@media (max-width: 860px) {
+  body { overflow: auto; }
+  .shell { display: block; height: auto; }
+  .side { border-right: 0; border-bottom: 1px solid var(--border); }
+  .main { height: 80vh; }
+}
 
-/* controls */
-.controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-.seg { display: inline-flex; background: var(--surface-2); border-radius: 9px; padding: 3px; }
-.seg button {
-  border: 0; background: transparent; color: var(--ink-2); padding: 5px 12px;
-  border-radius: 7px; font: inherit; font-size: 12.5px; cursor: pointer;
+/* ─── sidebar ────────────────────────────────────────── */
+.side {
+  border-right: 1px solid var(--border); background: var(--surface);
+  overflow-y: auto; padding: 16px 14px 20px; display: flex; flex-direction: column; gap: 18px;
+  animation: rise .45s var(--ease) .05s both;
 }
-.seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
-.search {
-  background: var(--surface-2); border: 1px solid var(--ring); color: var(--ink);
-  border-radius: 9px; padding: 6px 12px; font: inherit; font-size: 12.5px; width: 220px;
+.side h5 {
+  margin: 0 0 8px; font-size: 10px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted); font-family: var(--mono);
 }
-.chk { color: var(--ink-2); font-size: 12.5px; display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.health {
+  display: flex; align-items: center; gap: 14px; padding: 14px;
+  background: var(--elevated); border: 1px solid var(--border); border-radius: 14px;
+}
+.health .ring { position: relative; width: 84px; height: 84px; flex: none; }
+.health .ring svg { transform: rotate(-90deg); }
+.health .ring .track { stroke: var(--elevated-2); }
+.health .ring .arc { transition: stroke-dashoffset 1.1s var(--ease); }
+.health .ring .lbl {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-family: var(--mono); font-size: 30px; font-weight: 800;
+}
+.health .meta .score { font-family: var(--mono); font-size: 19px; font-weight: 700; }
+.health .meta .cap { color: var(--muted); font-size: 11px; }
+.health .meta .verdict { font-size: 11.5px; color: var(--ink-2); margin-top: 4px; }
 
-/* graph */
-.graph-wrap { display: grid; grid-template-columns: 1fr 320px; gap: 18px; }
-@media (max-width: 980px) { .graph-wrap { grid-template-columns: 1fr; } }
-#graph { width: 100%; height: 640px; border-radius: 10px; background: var(--page); border: 1px solid var(--grid); cursor: grab; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat {
+  background: var(--elevated); border: 1px solid var(--border); border-radius: 10px;
+  padding: 9px 11px; transition: border-color .15s;
+}
+.stat:hover { border-color: var(--border-hi); }
+.stat .v { font-family: var(--mono); font-size: 16.5px; font-weight: 700; letter-spacing: -0.02em; }
+.stat .l { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .07em; margin-top: 1px; }
+
+.colorby { display: flex; flex-direction: column; gap: 4px; }
+.colorby button {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  background: transparent; border: 1px solid transparent; color: var(--ink-2);
+  font: inherit; font-size: 12.5px; padding: 7px 10px; border-radius: 9px; cursor: pointer;
+  transition: all .15s;
+}
+.colorby button:hover { background: var(--elevated); color: var(--ink); }
+.colorby button.on {
+  background: linear-gradient(90deg, rgba(99,102,241,.16), rgba(34,211,238,.07));
+  border-color: rgba(99,102,241,.4); color: var(--ink); font-weight: 600;
+}
+.colorby .ic { width: 16px; text-align: center; flex: none; }
+
+.searchbox { position: relative; }
+.searchbox input {
+  width: 100%; background: var(--elevated); border: 1px solid var(--border); color: var(--ink);
+  border-radius: 9px; padding: 8px 12px 8px 30px; font: inherit; font-size: 12.5px; outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.searchbox input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+.searchbox .ic { position: absolute; left: 10px; top: 8px; color: var(--muted); pointer-events: none; }
+.searchbox kbd {
+  position: absolute; right: 8px; top: 7px; color: var(--muted); font-family: var(--mono);
+  font-size: 10px; border: 1px solid var(--border-hi); border-radius: 4px; padding: 1px 5px;
+}
+
+.langbar { height: 8px; border-radius: 4px; overflow: hidden; display: flex; margin-bottom: 8px; }
+.langbar i { display: block; height: 100%; }
+.langlist { display: flex; flex-direction: column; gap: 3px; }
+.langlist .row { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--ink-2); }
+.langlist .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.langlist .pct { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+
+.side .credit { margin-top: auto; color: var(--muted); font-size: 10.5px; font-family: var(--mono); line-height: 1.7; }
+
+/* ─── main ───────────────────────────────────────────── */
+.main { display: flex; flex-direction: column; min-width: 0; animation: rise .45s var(--ease) .1s both; }
+.tabs {
+  display: flex; gap: 2px; padding: 8px 14px 0; border-bottom: 1px solid var(--border);
+  background: var(--surface); overflow-x: auto;
+}
+.tabs button {
+  display: flex; align-items: center; gap: 7px;
+  background: transparent; border: 0; border-bottom: 2px solid transparent;
+  color: var(--ink-2); font: inherit; font-size: 12.5px; font-weight: 500;
+  padding: 8px 13px 9px; cursor: pointer; white-space: nowrap; transition: color .15s;
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button.on { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
+.tabs .badge {
+  font-family: var(--mono); font-size: 10px; font-weight: 700; border-radius: 999px;
+  padding: 1px 7px; background: var(--elevated-2); color: var(--ink-2);
+}
+.tabs .badge.alert { background: rgba(239,68,68,.18); color: #fca5a5; }
+.view { display: none; flex: 1; min-height: 0; overflow-y: auto; animation: fadein .25s ease both; }
+.view.active { display: block; }
+.view.fill { overflow: hidden; }
+
+/* graph view */
+#view-graph { position: relative; }
+#graph {
+  width: 100%; height: 100%; display: block; cursor: grab;
+  background-image: radial-gradient(circle, #17172294 1px, transparent 1px);
+  background-size: 26px 26px;
+}
 #graph:active { cursor: grabbing; }
-.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
-.legend .li { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; }
-.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.panel {
-  background: var(--surface-2); border-radius: 10px; padding: 14px 16px;
-  max-height: 640px; overflow-y: auto; font-size: 12.5px;
+.canvas-hud {
+  position: absolute; left: 14px; top: 12px; display: flex; gap: 8px; align-items: center;
+  flex-wrap: wrap; pointer-events: none; max-width: calc(100% - 28px);
 }
-.panel h3 { margin: 0 0 2px; font-size: 13.5px; word-break: break-all; }
-.panel .kv { color: var(--ink-2); margin: 8px 0; }
-.panel .kv b { color: var(--ink); }
-.panel h4 { margin: 14px 0 4px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.panel ul { margin: 0; padding-left: 16px; }
-.panel li { margin: 2px 0; word-break: break-all; }
-.panel li a { cursor: pointer; }
-.panel .empty { color: var(--muted); }
+.hud-chip {
+  pointer-events: auto; display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(18,18,26,.85); backdrop-filter: blur(6px);
+  border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px;
+  font-size: 11px; color: var(--ink-2);
+}
+.hud-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+.hud-chip label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+#graphNote { color: var(--muted); font-family: var(--mono); font-size: 10px; }
+
+/* generic view padding + cards */
+.pad { padding: 18px; display: grid; gap: 16px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 1024px) { .grid2 { grid-template-columns: 1fr; } }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 16px 18px; transition: border-color .2s;
+}
+.card:hover { border-color: var(--border-hi); }
+.card h2 { font-size: 13.5px; margin: 0 0 3px; font-weight: 700; }
+.card .hint { color: var(--muted); font-size: 11.5px; margin: 0 0 13px; }
 
 /* charts */
-svg text { font-family: inherit; }
-.axis text { fill: var(--muted); font-size: 11px; }
-.axis line, .axis path { stroke: var(--grid); }
+svg text { font-family: var(--font); }
 .tt {
   position: fixed; pointer-events: none; z-index: 50; display: none;
-  background: var(--surface-2); border: 1px solid var(--ring); color: var(--ink);
-  border-radius: 8px; padding: 8px 11px; font-size: 12px; max-width: 380px;
-  box-shadow: 0 6px 24px rgba(0,0,0,.35);
+  background: rgba(26,26,38,.94); backdrop-filter: blur(8px);
+  border: 1px solid var(--border-hi); color: var(--ink);
+  border-radius: 10px; padding: 9px 12px; font-size: 12px; max-width: 380px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5), 0 0 0 1px rgba(99,102,241,.08);
 }
-.tt .t { font-weight: 700; word-break: break-all; }
-.tt .d { color: var(--ink-2); }
+.tt .t { font-weight: 700; word-break: break-all; font-family: var(--mono); font-size: 11.5px; }
+.tt .d { color: var(--ink-2); margin-top: 2px; }
 
 /* tables */
 table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-th { text-align: left; color: var(--muted); font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--baseline); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
-td { padding: 6px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
-td.num { font-variant-numeric: tabular-nums; text-align: right; }
-th.num { text-align: right; }
-.chip { display: inline-flex; align-items: center; gap: 5px; padding: 1px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; word-break: break-all; }
-.cycle { color: var(--ink-2); margin: 6px 0; word-break: break-all; }
+th { text-align: left; color: var(--muted); font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--border-hi); font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; font-family: var(--mono); }
+td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 1px 9px; border-radius: 20px; font-size: 10.5px; font-weight: 700; color: #0a0a0f; font-family: var(--mono); }
+.mono { font-family: var(--mono); font-size: 11px; word-break: break-all; }
+.note { color: var(--muted); font-size: 11.5px; margin-top: 8px; }
+.cycle { color: var(--ink-2); margin: 7px 0; word-break: break-all; font-size: 12px; }
 .cycle b { color: var(--serious); }
-.footer { color: var(--muted); font-size: 12px; text-align: center; margin-top: 28px; }
-.note { color: var(--muted); font-size: 12px; margin-top: 8px; }
-.penalty { display: grid; grid-template-columns: 190px 1fr 44px; gap: 10px; align-items: center; margin: 7px 0; font-size: 12.5px; }
-.penalty .bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
-.penalty .bar i { display: block; height: 100%; border-radius: 4px; background: var(--serious); }
-.penalty .pts { text-align: right; font-variant-numeric: tabular-nums; color: var(--serious); font-weight: 700; }
+.penalty { display: grid; grid-template-columns: 180px 1fr 44px; gap: 10px; align-items: center; margin: 8px 0; font-size: 12px; }
+.penalty .bar { height: 7px; border-radius: 4px; background: var(--elevated-2); overflow: hidden; }
+.penalty .bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--serious), var(--critical)); }
+.penalty .pts { text-align: right; font-family: var(--mono); color: var(--serious); font-weight: 700; }
+
+/* ─── inspector ──────────────────────────────────────── */
+.inspector {
+  border-left: 1px solid var(--border); background: var(--surface);
+  overflow-y: auto; animation: rise .45s var(--ease) .15s both;
+}
+.inspector .head {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; background: var(--surface); z-index: 2;
+}
+.inspector .head .x {
+  cursor: pointer; color: var(--muted); border: 0; background: none; font: inherit; font-size: 13px;
+}
+.inspector .head .x:hover { color: var(--ink); }
+#panel { padding: 14px 16px 24px; font-size: 12.5px; }
+#panel .empty-state { color: var(--muted); text-align: center; padding: 42px 12px; line-height: 1.7; }
+#panel .empty-state .big { font-size: 26px; margin-bottom: 8px; opacity: .5; }
+#panel h3 { margin: 0 0 4px; font-size: 12.5px; word-break: break-all; font-family: var(--mono); color: var(--accent-2); }
+#panel .kv { color: var(--ink-2); margin: 7px 0; }
+#panel .kv b { color: var(--ink); font-family: var(--mono); }
+#panel h4 {
+  margin: 16px 0 6px; font-size: 10px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .1em; font-family: var(--mono); font-weight: 700;
+  display: flex; align-items: center; gap: 6px;
+}
+#panel h4::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+#panel ul { margin: 0; padding-left: 4px; list-style: none; }
+#panel li { margin: 3px 0; word-break: break-all; font-family: var(--mono); font-size: 11px; color: var(--ink-2); }
+#panel li a { cursor: pointer; color: var(--ink-2); }
+#panel li a:hover { color: var(--accent-2); }
+#panel li a::before { content: "→ "; color: var(--muted); }
+#panel .empty { color: var(--muted); font-family: var(--font); }
+.blast-box {
+  margin: 12px 0; padding: 11px 13px; border-radius: 10px;
+  background: var(--elevated); border: 1px solid var(--border);
+}
+.blast-box .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+.blast-box .ttl { font-size: 10.5px; font-family: var(--mono); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.blast-box .impact { font-family: var(--mono); font-size: 12px; }
+.blast-box .meter { height: 7px; border-radius: 4px; background: var(--elevated-2); overflow: hidden; }
+.blast-box .meter i { display: block; height: 100%; border-radius: 4px; }
+.blast-box .sub { color: var(--muted); font-size: 10.5px; margin-top: 6px; }
+.sevtag { padding: 1px 8px; border-radius: 5px; font-size: 9.5px; font-weight: 800; font-family: var(--mono); letter-spacing: .08em; color: #0a0a0f; }
 </style>
 <script>/*__D3__*/</script>
 </head>
 <body>
-<div class="wrap">
-  <header>
+
+<div class="topbar">
+  <div class="logo">
+    <svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="14" cy="14" r="9" fill="none" stroke="#6366f1" stroke-width="3"/>
+      <line x1="21" y1="21" x2="29" y2="29" stroke="#22d3ee" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="14" cy="14" r="3" fill="#22d3ee"/>
+    </svg>
+    <span class="name">REPOLENS</span>
+  </div>
+  <div class="sep"></div>
+  <div class="repo-id">
+    <div class="rn" id="repoName"></div>
+    <div class="rs" id="repoSub"></div>
+  </div>
+  <div class="right">
+    <div class="gen-meta" id="genMeta"></div>
+    <div class="grade-pill">
+      <div class="g" id="gradeBadge"></div>
+      <div class="s"><b id="scoreTxt"></b>/100</div>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+
+  <aside class="side">
+    <div class="health">
+      <div class="ring">
+        <svg width="84" height="84" viewBox="0 0 84 84">
+          <circle class="track" cx="42" cy="42" r="36" fill="none" stroke-width="7"/>
+          <circle class="arc" id="ringArc" cx="42" cy="42" r="36" fill="none" stroke-width="7" stroke-linecap="round"/>
+        </svg>
+        <div class="lbl" id="ringGrade"></div>
+      </div>
+      <div class="meta">
+        <div class="score" id="ringScore"></div>
+        <div class="cap">health score</div>
+        <div class="verdict" id="verdict"></div>
+      </div>
+    </div>
+
     <div>
-      <div class="brand">🔍 <b>repolens</b></div>
-      <h1 id="repoName"></h1>
-      <div class="sub" id="repoSub"></div>
+      <h5>Vitals</h5>
+      <div class="stats" id="stats"></div>
     </div>
-    <div class="grade">
-      <div class="grade-meta">
-        <div class="score" id="scoreTxt"></div>
-        <div class="lbl">health score</div>
+
+    <div>
+      <h5>Color by</h5>
+      <div class="colorby" id="modeSeg"></div>
+    </div>
+
+    <div>
+      <h5>Find a file</h5>
+      <div class="searchbox">
+        <span class="ic">⌕</span>
+        <input id="search" type="search" placeholder="search files…">
+        <kbd>/</kbd>
       </div>
-      <div class="grade-badge" id="gradeBadge"></div>
     </div>
-  </header>
 
-  <div class="tiles" id="tiles"></div>
-
-  <div class="card">
-    <h2>Dependency graph</h2>
-    <p class="hint">Every node is a file, sized by lines of code; edges point from importer to import. Drag to pan, scroll to zoom, click a node to inspect it and see its blast radius.</p>
-    <div class="controls">
-      <div class="seg" id="modeSeg"></div>
-      <input class="search" id="search" type="search" placeholder="find a file…">
-      <label class="chk"><input type="checkbox" id="lblToggle"> labels</label>
-      <span class="note" id="graphNote"></span>
+    <div>
+      <h5>Languages</h5>
+      <div class="langbar" id="langbar"></div>
+      <div class="langlist" id="langlist"></div>
     </div>
-    <div class="graph-wrap">
-      <div>
-        <svg id="graph"></svg>
-        <div class="legend" id="graphLegend"></div>
+
+    <div class="credit" id="footer"></div>
+  </aside>
+
+  <main class="main">
+    <div class="tabs" id="tabs"></div>
+    <div class="view fill" id="view-graph">
+      <svg id="graph"></svg>
+      <div class="canvas-hud">
+        <span class="hud-chip"><label><input type="checkbox" id="lblToggle"> labels</label></span>
+        <span id="graphLegend" style="display:contents"></span>
+        <span class="hud-chip" id="graphNoteWrap" style="display:none"><span id="graphNote"></span></span>
       </div>
-      <div class="panel" id="panel"><span class="empty">Click a node to inspect a file — its imports, dependents, functions, owners, and how far a change would ripple.</span></div>
     </div>
-  </div>
+    <div class="view" id="view-map">
+      <div class="pad">
+        <div class="card">
+          <h2>Code map</h2>
+          <p class="hint">Treemap of lines of code by folder — where the mass of this codebase lives.</p>
+          <svg id="treemap" style="width:100%"></svg>
+        </div>
+        <div class="card">
+          <h2>Languages</h2>
+          <p class="hint">Share of lines of code by language.</p>
+          <svg id="donut" style="width:100%"></svg>
+        </div>
+      </div>
+    </div>
+    <div class="view" id="view-hotspots">
+      <div class="pad">
+        <div class="card">
+          <h2>Hotspots</h2>
+          <p class="hint">Most-changed files in git history — churn concentrates bugs and merge pain.</p>
+          <svg id="churnChart" style="width:100%"></svg>
+          <div class="note" id="churnNote"></div>
+        </div>
+        <div class="card">
+          <h2>Blast radius</h2>
+          <p class="hint">Files whose change ripples furthest — the ones to touch carefully and test hard.</p>
+          <svg id="blastChart" style="width:100%"></svg>
+        </div>
+      </div>
+    </div>
+    <div class="view" id="view-health">
+      <div class="pad grid2">
+        <div class="card">
+          <h2>Health breakdown</h2>
+          <p class="hint">Where the score went. Fewer bars is better.</p>
+          <div id="penalties"></div>
+        </div>
+        <div class="card">
+          <h2>Circular dependencies</h2>
+          <p class="hint">Files that import each other in a loop — refactor candidates.</p>
+          <div id="cycles"></div>
+        </div>
+      </div>
+    </div>
+    <div class="view" id="view-security">
+      <div class="pad">
+        <div class="card">
+          <h2>Security scan</h2>
+          <p class="hint">Heuristic scan for committed secrets, injection-prone patterns, and hygiene issues. Findings inside test/example paths are demoted.</p>
+          <div id="security"></div>
+        </div>
+      </div>
+    </div>
+  </main>
 
-  <div class="grid2">
-    <div class="card">
-      <h2>Code map</h2>
-      <p class="hint">Treemap of lines of code by folder — where the mass of this codebase lives.</p>
-      <svg id="treemap" style="width:100%"></svg>
-    </div>
-    <div class="card">
-      <h2>Languages</h2>
-      <p class="hint">Share of lines of code by language.</p>
-      <svg id="donut" style="width:100%"></svg>
-    </div>
-  </div>
+  <aside class="inspector">
+    <div class="head"><span>Inspector</span><button class="x" id="panelClose" title="clear selection">✕</button></div>
+    <div id="panel"></div>
+  </aside>
 
-  <div class="grid2">
-    <div class="card">
-      <h2>Hotspots</h2>
-      <p class="hint">Most-changed files in git history — churn concentrates bugs and merge pain.</p>
-      <svg id="churnChart" style="width:100%"></svg>
-      <div class="note" id="churnNote"></div>
-    </div>
-    <div class="card">
-      <h2>Blast radius</h2>
-      <p class="hint">Files whose change ripples furthest — the ones to touch carefully and test hard.</p>
-      <svg id="blastChart" style="width:100%"></svg>
-    </div>
-  </div>
-
-  <div class="grid2">
-    <div class="card">
-      <h2>Health breakdown</h2>
-      <p class="hint">Where the score went. Fewer bars is better.</p>
-      <div id="penalties"></div>
-    </div>
-    <div class="card">
-      <h2>Circular dependencies</h2>
-      <p class="hint">Files that import each other in a loop — refactor candidates.</p>
-      <div id="cycles"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>Security scan</h2>
-    <p class="hint">Heuristic scan for committed secrets, injection-prone patterns, and hygiene issues. Findings inside test/example paths are demoted to warnings.</p>
-    <div id="security"></div>
-  </div>
-
-  <div class="footer" id="footer"></div>
 </div>
 <div class="tt" id="tt"></div>
 
@@ -250,37 +450,89 @@ const esc = (s) => String(s).replace(/[&<>"']/g, c =>
 const SERIES = () => [1,2,3,4,5,6,7,8].map(i => css("--s"+i));
 const STATUS = () => ({good: css("--good"), warning: css("--warning"),
                        serious: css("--serious"), critical: css("--critical")});
-const isDark = () => !window.matchMedia("(prefers-color-scheme: light)").matches;
-// sequential blue ramp (from the validated palette), light→dark
-const SEQ_LIGHT = ["#cde2fb","#9ec5f4","#6da7ec","#3987e5","#256abf","#184f95","#0d366b"];
-const SEQ_DARK  = ["#0d366b","#184f95","#1c5cab","#256abf","#2a78d6","#3987e5","#6da7ec"];
-const seqRamp = (t) => d3.interpolateRgbBasis(isDark() ? SEQ_DARK : SEQ_LIGHT)(t);
+// sequential ramp (indigo → cyan heat), dark-tuned
+const seqRamp = (t) => d3.interpolateRgbBasis(["#232345", "#3b3f8f", "#5a5fd6", "#6366f1", "#38bdf8", "#22d3ee"])(t);
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/* ---------- header & tiles ---------- */
-const GRADE_COLOR = {A: STATUS().good, B: css("--s1"), C: STATUS().warning,
+/* ─── topbar & sidebar ───────────────────────────────── */
+const GRADE_COLOR = {A: STATUS().good, B: "#a3e635", C: STATUS().warning,
                      D: STATUS().serious, F: STATUS().critical};
+const gradeColor = GRADE_COLOR[R.health.grade] || css("--muted");
 $("#repoName").textContent = R.repo.name;
-$("#repoSub").textContent =
-  (R.repo.origin ? R.repo.origin + " · " : "") + "analyzed " + R.generatedAt +
-  " · repolens v" + R.tool.version;
-$("#scoreTxt").textContent = R.health.score + "/100";
+$("#repoSub").textContent = R.repo.origin || R.repo.root || "";
+$("#genMeta").innerHTML = `${esc(R.generatedAt)}<br>repolens v${esc(R.tool.version)}`;
+$("#scoreTxt").textContent = R.health.score;
 const gb = $("#gradeBadge");
 gb.textContent = R.health.grade;
-gb.style.background = GRADE_COLOR[R.health.grade] || css("--muted");
+gb.style.background = gradeColor;
 document.title = R.repo.name + " · " + R.health.grade + " · repolens";
 
-const tiles = [
-  [R.repo.filesAnalyzed, "files analyzed"],
-  [R.repo.totalLoc, "lines of code"],
-  [R.repo.totalFunctions, "functions"],
-  [R.repo.edges, "dependency edges"],
-  [R.cycles.length, "dependency cycles"],
-];
-if (R.git.available) tiles.push([R.git.contributors, "contributors"], [R.git.commits, "commits scanned"]);
-$("#tiles").innerHTML = tiles.map(([v, l]) =>
-  `<div class="tile"><div class="v">${fmt(v)}</div><div class="l">${l}</div></div>`).join("");
+/* health ring */
+{
+  const arc = $("#ringArc"), circ = 2 * Math.PI * 36;
+  arc.style.stroke = gradeColor;
+  arc.style.filter = `drop-shadow(0 0 6px ${gradeColor})`;
+  arc.setAttribute("stroke-dasharray", circ);
+  arc.setAttribute("stroke-dashoffset", circ);
+  const rg = $("#ringGrade");
+  rg.textContent = R.health.grade;
+  rg.style.color = gradeColor;
+  $("#ringScore").textContent = R.health.score + "/100";
+  $("#verdict").textContent = {A: "ship it 🚀", B: "solid shape", C: "needs attention",
+                               D: "handle with care", F: "here be dragons"}[R.health.grade] || "";
+  requestAnimationFrame(() => requestAnimationFrame(() =>
+    arc.setAttribute("stroke-dashoffset", circ * (1 - R.health.score / 100))));
+}
 
-/* ---------- shared tooltip ---------- */
+/* vitals */
+{
+  const items = [
+    [R.repo.filesAnalyzed, "files"],
+    [R.repo.totalLoc, "lines"],
+    [R.repo.totalFunctions, "functions"],
+    [R.repo.edges, "edges"],
+    [R.cycles.length, "cycles"],
+    [R.security.filter(s => s.severity !== "info").length, "findings"],
+  ];
+  if (R.git.available) items.push([R.git.contributors, "authors"], [R.git.commits, "commits"]);
+  $("#stats").innerHTML = items.map(([v, l]) =>
+    `<div class="stat"><div class="v" data-n="${v}">0</div><div class="l">${l}</div></div>`).join("");
+  // count-up
+  document.querySelectorAll(".stat .v").forEach(el => {
+    const n = +el.dataset.n;
+    if (reduceMotion || n === 0) { el.textContent = fmt(n); return; }
+    const t0 = performance.now(), dur = 700;
+    const step = (t) => {
+      const p = Math.min(1, (t - t0) / dur), e2 = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(Math.round(n * e2));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+/* languages */
+{
+  const total = d3.sum(R.languages, d => d.loc) || 1;
+  const top = R.languages.slice(0, 6);
+  const rest = R.languages.slice(6);
+  const rows = rest.length
+    ? [...top, {name: "Other", loc: d3.sum(rest, d => d.loc)}] : top;
+  const names = rows.map(d => d.name);
+  const colorOf = (d) => d.name === "Other" ? css("--muted") : SERIES()[names.indexOf(d.name) % 8];
+  $("#langbar").innerHTML = rows.map(d =>
+    `<i style="width:${(d.loc / total * 100)}%;background:${colorOf(d)}" title="${esc(d.name)}"></i>`).join("");
+  $("#langlist").innerHTML = rows.map(d =>
+    `<div class="row"><span class="dot" style="background:${colorOf(d)}"></span>${esc(d.name)}
+     <span class="pct">${(d.loc / total * 100).toFixed(1)}%</span></div>`).join("");
+}
+
+$("#footer").innerHTML =
+  `<a href="https://github.com/nguyenminhduc9988/repolens">repolens</a> v${esc(R.tool.version)}<br>` +
+  `single self-contained file<br>zero external requests<br>` +
+  `inspired by <a href="https://github.com/braedonsaunders/codeflow">CodeFlow</a>`;
+
+/* ─── shared tooltip ─────────────────────────────────── */
 const tt = $("#tt");
 function showTT(evt, html) {
   tt.innerHTML = html; tt.style.display = "block";
@@ -292,7 +544,32 @@ function showTT(evt, html) {
 }
 const hideTT = () => tt.style.display = "none";
 
-/* ---------- dependency graph ---------- */
+/* ─── tabs ───────────────────────────────────────────── */
+const nSec = R.security.filter(s => s.severity === "critical" || s.severity === "serious").length;
+const TABS = [
+  ["graph", "⌬ Graph", null],
+  ["map", "▦ Code map", null],
+  ["hotspots", "🔥 Hotspots", null],
+  ["health", "♥ Health", R.health.penalties.length || null],
+  ["security", "🛡 Security", nSec || null],
+];
+let activeTab = "graph";
+const rendered = {};
+$("#tabs").innerHTML = TABS.map(([k, l, badge]) =>
+  `<button data-tab="${k}" class="${k === activeTab ? "on" : ""}">${l}
+   ${badge ? `<span class="badge ${k === "security" ? "alert" : ""}">${badge}</span>` : ""}</button>`).join("");
+function showTab(k) {
+  activeTab = k;
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === k));
+  document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + k));
+  if (!rendered[k]) { VIEWS[k](); rendered[k] = true; }
+}
+$("#tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-tab]");
+  if (b) showTab(b.dataset.tab);
+});
+
+/* ─── dependency graph ───────────────────────────────── */
 const MAX_NODES = 1200, MAX_EDGES = 3200;
 let files = R.files;
 let droppedNote = "";
@@ -309,7 +586,6 @@ if (links.length > MAX_EDGES) {
   links = links.slice(0, MAX_EDGES);
   droppedNote += (droppedNote ? " · " : "") + `first ${fmt(MAX_EDGES)} of ${fmt(R.edges.length)} edges`;
 }
-$("#graphNote").textContent = droppedNote;
 
 const topFolder = (p) => p.includes("/") ? p.split("/")[0] : "(root)";
 const folderLoc = d3.rollup(files, v => d3.sum(v, f => f.loc), f => topFolder(f.path));
@@ -327,12 +603,12 @@ let mode = "folder", selected = null;
 const nodeColor = (f) => {
   if (mode === "folder") return catColor(folderOrder, topFolder(f.path));
   if (mode === "layer") return catColor(LAYERS, f.layer);
-  if (mode === "churn") return f.churn ? seqRamp(0.15 + 0.85 * Math.sqrt(f.churn / churnMax)) : css("--surface-2");
+  if (mode === "churn") return f.churn ? seqRamp(0.15 + 0.85 * Math.sqrt(f.churn / churnMax)) : css("--elevated-2");
   if (mode === "blast") {
-    if (!selected) return f.blast ? seqRamp(0.15 + 0.85 * Math.sqrt(f.blast / blastMax)) : css("--surface-2");
-    if (f.id === selected.id) return css("--accent");
+    if (!selected) return f.blast ? seqRamp(0.15 + 0.85 * Math.sqrt(f.blast / blastMax)) : css("--elevated-2");
+    if (f.id === selected.id) return css("--accent-2");
     if (blastSet.has(f.id)) return STATUS().serious;
-    return css("--surface-2");
+    return css("--elevated-2");
   }
   return css("--s1");
 };
@@ -347,54 +623,194 @@ function computeBlast(id) {
 }
 const tid = (x) => typeof x === "object" ? x.id : x;
 
-const svg = d3.select("#graph");
-const gw = $("#graph").clientWidth, gh = 640;
-svg.attr("viewBox", [0, 0, gw, gh]);
-const zoomG = svg.append("g");
-svg.call(d3.zoom().scaleExtent([0.15, 8]).on("zoom", (e) => zoomG.attr("transform", e.transform)));
+let sim, nodeSel, linkSel, labelSel, zoomG;
+function initGraph() {
+  const box = $("#view-graph").getBoundingClientRect();
+  const gw = Math.max(320, box.width), gh = Math.max(320, box.height);
+  const svg = d3.select("#graph");
+  svg.attr("viewBox", [0, 0, gw, gh]);
+  zoomG = svg.append("g");
+  const zoom = d3.zoom().scaleExtent([0.15, 8]).on("zoom", (e) => zoomG.attr("transform", e.transform));
+  svg.call(zoom);
 
-const rScale = d3.scaleSqrt().domain([0, d3.max(files, f => f.loc) || 1]).range([3.5, 16]);
-const sim = d3.forceSimulation(files)
-  .force("link", d3.forceLink(links).id(d => d.id).distance(46).strength(0.25))
-  .force("charge", d3.forceManyBody().strength(files.length > 600 ? -28 : -70))
-  .force("center", d3.forceCenter(gw / 2, gh / 2))
-  .force("collide", d3.forceCollide(d => rScale(d.loc) + 1.5))
-  .force("x", d3.forceX(gw / 2).strength(0.045))
-  .force("y", d3.forceY(gh / 2).strength(0.055));
+  const small = files.length <= 130;   // small graphs get labels + roomier layout
+  const rScale = d3.scaleSqrt().domain([0, d3.max(files, f => f.loc) || 1])
+    .range(small ? [6, 26] : [4, 18]);
+  sim = d3.forceSimulation(files)
+    .force("link", d3.forceLink(links).id(d => d.id).distance(small ? 78 : 50).strength(0.3))
+    .force("charge", d3.forceManyBody().strength(files.length > 600 ? -34 : (small ? -220 : -90)))
+    .force("center", d3.forceCenter(gw / 2, gh / 2))
+    .force("collide", d3.forceCollide(d => rScale(d.loc) + (small ? 14 : 2)))
+    .force("x", d3.forceX(gw / 2).strength(0.05))
+    .force("y", d3.forceY(gh / 2).strength(0.06));
 
-const linkSel = zoomG.append("g").selectAll("line").data(links).join("line")
-  .attr("stroke", css("--baseline")).attr("stroke-opacity", 0.45).attr("stroke-width", 1);
-const nodeSel = zoomG.append("g").selectAll("circle").data(files).join("circle")
-  .attr("r", d => rScale(d.loc))
-  .attr("stroke", css("--page")).attr("stroke-width", 1.2)
-  .style("cursor", "pointer")
-  .call(d3.drag()
-    .on("start", (e, d) => { if (!e.active) sim.alphaTarget(0.25).restart(); d.fx = d.x; d.fy = d.y; })
-    .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; })
-    .on("end", (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
-const labelSel = zoomG.append("g").selectAll("text").data(files).join("text")
-  .text(d => d.path.split("/").pop())
-  .attr("font-size", 9.5).attr("fill", css("--ink-2"))
-  .attr("dx", d => rScale(d.loc) + 3).attr("dy", 3)
-  .style("display", "none").style("pointer-events", "none");
+  linkSel = zoomG.append("g").selectAll("line").data(links).join("line")
+    .attr("stroke", "#3d3d5e").attr("stroke-opacity", 0.55).attr("stroke-width", 1.2);
+  nodeSel = zoomG.append("g").selectAll("circle").data(files).join("circle")
+    .attr("r", d => rScale(d.loc))
+    .attr("stroke", css("--bg")).attr("stroke-width", 1.2)
+    .style("cursor", "pointer")
+    .call(d3.drag()
+      .on("start", (e, d) => { if (!e.active) sim.alphaTarget(0.25).restart(); d.fx = d.x; d.fy = d.y; })
+      .on("drag", (e, d) => { d.fx = e.x; d.fy = e.y; })
+      .on("end", (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
+  labelSel = zoomG.append("g").selectAll("text").data(files).join("text")
+    .text(d => d.path.split("/").pop())
+    .attr("font-size", small ? 10.5 : 9.5).attr("fill", css("--ink-2")).attr("font-family", css("--mono"))
+    .attr("dx", d => rScale(d.loc) + 4).attr("dy", 3.5)
+    .attr("paint-order", "stroke").attr("stroke", css("--bg")).attr("stroke-width", 3)
+    .style("display", small ? null : "none").style("pointer-events", "none");
+  if (small) $("#lblToggle").checked = true;
 
-sim.on("tick", () => {
-  linkSel.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
-         .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
-  nodeSel.attr("cx", d => d.x).attr("cy", d => d.y);
-  labelSel.attr("x", d => d.x).attr("y", d => d.y);
-});
+  sim.on("tick", () => {
+    linkSel.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+           .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+    nodeSel.attr("cx", d => d.x).attr("cy", d => d.y);
+    labelSel.attr("x", d => d.x).attr("y", d => d.y);
+  });
+
+  nodeSel
+    .on("click", (e, d) => { e.stopPropagation(); selectNode(d); })
+    .on("mousemove", (e, d) => showTT(e,
+      `<div class="t">${esc(d.path)}</div>
+       <div class="d">${d.language} · ${fmt(d.loc)} loc · layer ${d.layer}</div>
+       <div class="d">${d.importedBy.length} dependents · ${d.imports.length} imports · blast ${fmt(d.blast)}</div>
+       ${d.churn ? `<div class="d">${d.churn} commits${d.authors.length ? " · " + esc(d.authors.join(", ")) : ""}</div>` : ""}`))
+    .on("mouseleave", hideTT)
+    .on("mouseenter", function() { d3.select(this).style("filter", `drop-shadow(0 0 6px ${css("--glow")})`); })
+    .on("mouseout", function(e, d) { if (!selected || d.id !== selected.id) d3.select(this).style("filter", null); });
+  svg.on("click", () => selectNode(null));
+
+  if (droppedNote) { $("#graphNote").textContent = droppedNote; $("#graphNoteWrap").style.display = ""; }
+  $("#lblToggle").addEventListener("change", (e) =>
+    labelSel.style("display", e.target.checked ? null : "none"));
+  paintGraph();
+
+  // settle, then zoom-to-fit the whole constellation
+  setTimeout(() => {
+    const xs = files.map(f => f.x), ys = files.map(f => f.y);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const w = Math.max(1, x1 - x0), h = Math.max(1, y1 - y0);
+    const k = Math.min(2.2, 0.86 / Math.max(w / gw, h / gh));
+    if (isFinite(k) && k > 0) {
+      const t = d3.zoomIdentity.translate(gw / 2 - k * (x0 + x1) / 2, gh / 2 - k * (y0 + y1) / 2).scale(k);
+      svg.transition().duration(reduceMotion ? 0 : 650).call(zoom.transform, t);
+    }
+  }, 900);
+}
 
 function paintGraph() {
+  if (!nodeSel) return;
   nodeSel.attr("fill", d => nodeColor(d))
+    .style("filter", d => selected && d.id === selected.id ? `drop-shadow(0 0 8px ${css("--accent-2")})` : null)
     .attr("opacity", d => selected && mode !== "blast"
-      ? (d.id === selected.id || neighborSet.has(d.id) ? 1 : 0.18) : 1);
-  linkSel.attr("stroke", d => selected && (tid(d.source) === selected.id || tid(d.target) === selected.id)
-      ? css("--accent") : css("--baseline"))
+      ? (d.id === selected.id || neighborSet.has(d.id) ? 1 : 0.15) : 1);
+  linkSel.attr("stroke", d => {
+      if (!selected) return css("--border-hi");
+      if (tid(d.target) === selected.id) return css("--accent");    // dependents flow in
+      if (tid(d.source) === selected.id) return css("--accent-2");  // imports flow out
+      return css("--border-hi");
+    })
     .attr("stroke-opacity", d => selected
-      ? (tid(d.source) === selected.id || tid(d.target) === selected.id ? 0.9 : 0.08) : 0.45)
+      ? (tid(d.source) === selected.id || tid(d.target) === selected.id ? 0.95 : 0.06) : 0.4)
     .attr("stroke-width", d => selected && (tid(d.source) === selected.id || tid(d.target) === selected.id) ? 1.6 : 1);
   renderGraphLegend();
+}
+
+function renderGraphLegend() {
+  const leg = $("#graphLegend");
+  let items = [];
+  if (mode === "folder") items = folderOrder.slice(0, 8).map((f2) => [catColor(folderOrder, f2), f2]);
+  else if (mode === "layer") items = LAYERS.filter(l => files.some(f => f.layer === l)).map(l => [catColor(LAYERS, l), l]);
+  else if (mode === "churn") items = [[seqRamp(0.15), "cold"], [seqRamp(0.6), "warm"], [seqRamp(1), "hot"]];
+  else items = selected
+    ? [[css("--accent-2"), "selected"], [STATUS().serious, "affected"], [css("--elevated-2"), "unaffected"]]
+    : [[seqRamp(0.15), "small blast"], [seqRamp(1), "large blast"], [css("--elevated-2"), "no dependents"]];
+  if (mode === "folder" && folderOrder.length > 8) items.push([css("--muted"), "other"]);
+  leg.innerHTML = items.map(([c, l]) =>
+    `<span class="hud-chip"><span class="dot" style="background:${c}"></span>${esc(l)}</span>`).join("");
+}
+
+/* color-by control */
+const MODES = [["folder", "🗂", "Folder"], ["layer", "🏛", "Layer"], ["churn", "🔥", "Churn"], ["blast", "💥", "Blast radius"]];
+$("#modeSeg").innerHTML = MODES.map(([k, ic, l]) =>
+  `<button data-mode="${k}" class="${k === mode ? "on" : ""}"><span class="ic">${ic}</span>${l}</button>`).join("");
+$("#modeSeg").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+  mode = b.dataset.mode;
+  $("#modeSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+  if (activeTab !== "graph") showTab("graph");
+  paintGraph();
+}));
+
+/* search */
+$("#search").addEventListener("input", (e) => {
+  if (activeTab !== "graph") showTab("graph");
+  if (!nodeSel) return;
+  const q = e.target.value.trim().toLowerCase();
+  if (!q) { nodeSel.attr("opacity", 1); if (!selected) paintGraph(); return; }
+  nodeSel.attr("opacity", d => d.path.toLowerCase().includes(q) ? 1 : 0.1);
+});
+$("#search").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    const q = e.target.value.trim().toLowerCase();
+    const hit = files.find(d => d.path.toLowerCase().includes(q));
+    if (hit) selectNode(hit);
+  }
+  if (e.key === "Escape") { e.target.value = ""; e.target.dispatchEvent(new Event("input")); e.target.blur(); }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "/" && document.activeElement.tagName !== "INPUT") { e.preventDefault(); $("#search").focus(); }
+  if (e.key === "Escape" && document.activeElement.tagName !== "INPUT") selectNode(null);
+});
+
+/* ─── inspector ──────────────────────────────────────── */
+const byId = new Map(R.files.map(f => [f.id, f]));
+const EMPTY_PANEL = `<div class="empty-state"><div class="big">⌖</div>
+  Click any node in the graph to inspect a file —<br>its imports, dependents, functions, owners,<br>and how far a change would ripple.</div>`;
+$("#panel").innerHTML = EMPTY_PANEL;
+$("#panelClose").addEventListener("click", () => selectNode(null));
+
+function blastSeverity(pct) {
+  if (pct >= 25) return ["CRITICAL", css("--critical")];
+  if (pct >= 10) return ["SERIOUS", css("--serious")];
+  if (pct >= 3) return ["MODERATE", css("--warning")];
+  return ["LOW", css("--good")];
+}
+
+function renderPanel(f) {
+  const li = (ids) => ids.length
+    ? "<ul>" + ids.slice(0, 25).map(i => `<li><a data-goto="${i}">${esc((byId.get(i) || {}).path || i)}</a></li>`).join("") +
+      (ids.length > 25 ? `<li class="empty">… ${ids.length - 25} more</li>` : "") + "</ul>"
+    : '<span class="empty">none</span>';
+  const pct = f.blast / (R.repo.filesAnalyzed || 1) * 100;
+  const [sev, sevColor] = blastSeverity(pct);
+  $("#panel").innerHTML = `
+    <h3>${esc(f.path)}</h3>
+    <div class="kv">${f.language} · <b>${fmt(f.loc)}</b> loc · layer <b>${f.layer}</b></div>
+    <div class="blast-box">
+      <div class="row"><span class="ttl">💥 Blast radius</span>
+        <span class="sevtag" style="background:${sevColor}">${sev}</span></div>
+      <div class="row"><span class="impact">impact</span>
+        <span class="impact"><b>${fmt(f.blast)}</b> files (${pct.toFixed(0)}%)</span></div>
+      <div class="meter"><i style="width:${Math.min(100, pct)}%;background:${sevColor}"></i></div>
+      <div class="sub">files that transitively depend on this one</div>
+    </div>
+    ${f.churn ? `<div class="kv">Churn: <b>${f.churn}</b> commits · last touched ${esc(f.lastTouched || "?")}</div>` : ""}
+    ${f.authors.length ? `<div class="kv">Owners: <b>${esc(f.authors.join(", "))}</b></div>` : ""}
+    <h4>Imported by (${f.importedBy.length})</h4>${li(f.importedBy)}
+    <h4>Imports (${f.imports.length})</h4>${li(f.imports)}
+    ${f.external.length ? `<h4>External deps (${f.external.length})</h4><ul>` +
+      f.external.slice(0, 15).map(x => `<li>${esc(x)}</li>`).join("") + "</ul>" : ""}
+    <h4>Functions (${f.functions.length})</h4>
+    ${f.functions.length ? "<ul>" + f.functions.slice(0, 20).map(fn =>
+      `<li>${esc(fn.name)} <span class="empty">:${fn.line}</span></li>`).join("") +
+      (f.functions.length > 20 ? `<li class="empty">… ${f.functions.length - 20} more</li>` : "") + "</ul>"
+      : '<span class="empty">none detected</span>'}`;
+  $("#panel").querySelectorAll("[data-goto]").forEach(a =>
+    a.addEventListener("click", () => {
+      const t = files.find(x => x.id === +a.dataset.goto);
+      if (t) selectNode(t);
+    }));
 }
 
 let neighborSet = new Set();
@@ -406,93 +822,15 @@ function selectNode(f) {
     renderPanel(f);
   } else {
     neighborSet = new Set(); blastSet = new Set();
-    $("#panel").innerHTML = '<span class="empty">Click a node to inspect a file.</span>';
+    $("#panel").innerHTML = EMPTY_PANEL;
   }
   paintGraph();
 }
 
-nodeSel
-  .on("click", (e, d) => { e.stopPropagation(); selectNode(d); })
-  .on("mousemove", (e, d) => showTT(e,
-    `<div class="t">${esc(d.path)}</div>
-     <div class="d">${d.language} · ${fmt(d.loc)} loc · layer ${d.layer}</div>
-     <div class="d">${d.importedBy.length} dependents · ${d.imports.length} imports · blast ${fmt(d.blast)}</div>
-     ${d.churn ? `<div class="d">${d.churn} commits${d.authors.length ? " · " + esc(d.authors.join(", ")) : ""}</div>` : ""}`))
-  .on("mouseleave", hideTT);
-svg.on("click", () => selectNode(null));
-
-const byId = new Map(R.files.map(f => [f.id, f]));
-function renderPanel(f) {
-  const li = (ids) => ids.length
-    ? "<ul>" + ids.slice(0, 25).map(i => `<li><a data-goto="${i}">${esc((byId.get(i) || {}).path || i)}</a></li>`).join("") +
-      (ids.length > 25 ? `<li class="empty">… ${ids.length - 25} more</li>` : "") + "</ul>"
-    : '<span class="empty">none</span>';
-  $("#panel").innerHTML = `
-    <h3>${esc(f.path)}</h3>
-    <div class="kv">${f.language} · <b>${fmt(f.loc)}</b> loc · layer <b>${f.layer}</b></div>
-    <div class="kv">Blast radius: <b>${fmt(f.blast)}</b> file(s) affected by a change here</div>
-    ${f.churn ? `<div class="kv">Churn: <b>${f.churn}</b> commits · last touched ${esc(f.lastTouched || "?")}</div>` : ""}
-    ${f.authors.length ? `<div class="kv">Owners: <b>${esc(f.authors.join(", "))}</b></div>` : ""}
-    <h4>Imported by (${f.importedBy.length})</h4>${li(f.importedBy)}
-    <h4>Imports (${f.imports.length})</h4>${li(f.imports)}
-    ${f.external.length ? `<h4>External deps (${f.external.length})</h4><ul>` +
-      f.external.slice(0, 15).map(x => `<li class="mono">${esc(x)}</li>`).join("") + "</ul>" : ""}
-    <h4>Functions (${f.functions.length})</h4>
-    ${f.functions.length ? "<ul>" + f.functions.slice(0, 20).map(fn =>
-      `<li class="mono">${esc(fn.name)} <span class="empty">:${fn.line}</span></li>`).join("") +
-      (f.functions.length > 20 ? `<li class="empty">… ${f.functions.length - 20} more</li>` : "") + "</ul>"
-      : '<span class="empty">none detected</span>'}`;
-  $("#panel").querySelectorAll("[data-goto]").forEach(a =>
-    a.addEventListener("click", () => {
-      const t = files.find(x => x.id === +a.dataset.goto);
-      if (t) selectNode(t);
-    }));
-}
-
-function renderGraphLegend() {
-  const leg = $("#graphLegend");
-  let items = [];
-  if (mode === "folder") items = folderOrder.slice(0, 8).map((f2) => [catColor(folderOrder, f2), f2]);
-  else if (mode === "layer") items = LAYERS.filter(l => files.some(f => f.layer === l)).map(l => [catColor(LAYERS, l), l]);
-  else if (mode === "churn") items = [[seqRamp(0.15), "cold"], [seqRamp(0.6), "warm"], [seqRamp(1), "hot (most commits)"]];
-  else items = selected
-    ? [[css("--accent"), "selected"], [STATUS().serious, "would be affected"], [css("--surface-2"), "unaffected"]]
-    : [[seqRamp(0.15), "small blast"], [seqRamp(1), "large blast"], [css("--surface-2"), "no dependents"]];
-  if (mode === "folder" && folderOrder.length > 8) items.push([css("--muted"), "other"]);
-  leg.innerHTML = items.map(([c, l]) =>
-    `<span class="li"><span class="dot" style="background:${c}"></span>${l}</span>`).join("");
-}
-
-const MODES = [["folder", "Folder"], ["layer", "Layer"], ["churn", "Churn"], ["blast", "Blast"]];
-$("#modeSeg").innerHTML = MODES.map(([k, l]) =>
-  `<button data-mode="${k}" class="${k === mode ? "on" : ""}">${l}</button>`).join("");
-$("#modeSeg").querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
-  mode = b.dataset.mode;
-  $("#modeSeg").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
-  paintGraph();
-}));
-
-$("#search").addEventListener("input", (e) => {
-  const q = e.target.value.trim().toLowerCase();
-  if (!q) { nodeSel.attr("opacity", 1); if (!selected) paintGraph(); return; }
-  nodeSel.attr("opacity", d => d.path.toLowerCase().includes(q) ? 1 : 0.12);
-});
-$("#search").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    const q = e.target.value.trim().toLowerCase();
-    const hit = files.find(d => d.path.toLowerCase().includes(q));
-    if (hit) selectNode(hit);
-  }
-});
-$("#lblToggle").addEventListener("change", (e) =>
-  labelSel.style("display", e.target.checked ? null : "none"));
-
-paintGraph();
-
-/* ---------- treemap ---------- */
+/* ─── treemap ────────────────────────────────────────── */
 function renderTreemap() {
   const el = $("#treemap"); el.innerHTML = "";
-  const W = el.clientWidth || 600, H = 380;
+  const W = el.clientWidth || 700, H = 420;
   const sv = d3.select(el).attr("viewBox", [0, 0, W, H]).attr("height", H);
   const root = {name: "", children: []};
   const dirs = new Map();
@@ -502,16 +840,17 @@ function renderTreemap() {
     if (!dirs.has(dir)) dirs.set(dir, {name: dir, value: 0, files: 0});
     const d = dirs.get(dir); d.value += f.loc; d.files += 1;
   });
-  root.children = [...dirs.values()];
+  root.children = [...dirs.values()].filter(d => d.value > 0);
   const h = d3.hierarchy(root).sum(d => d.value).sort((a, b) => b.value - a.value);
-  d3.treemap().size([W, H]).paddingInner(2).paddingOuter(1)(h);
+  d3.treemap().size([W, H]).paddingInner(2).round(true)(h);
   const cells = sv.selectAll("g").data(h.leaves()).join("g")
     .attr("transform", d => `translate(${d.x0},${d.y0})`);
   cells.append("rect")
     .attr("width", d => Math.max(0, d.x1 - d.x0)).attr("height", d => Math.max(0, d.y1 - d.y0))
-    .attr("rx", 3)
+    .attr("rx", 4)
     .attr("fill", d => catColor(folderOrder, d.data.name === "(root)" ? "(root)" : d.data.name.split("/")[0]))
-    .attr("fill-opacity", 0.82)
+    .attr("fill-opacity", 0.78)
+    .attr("stroke", css("--bg")).attr("stroke-width", 1)
     .on("mousemove", (e, d) => showTT(e,
       `<div class="t">${esc(d.data.name)}</div><div class="d">${fmt(d.value)} loc · ${d.data.files} files</div>`))
     .on("mouseleave", hideTT);
@@ -524,10 +863,10 @@ function renderTreemap() {
     });
 }
 
-/* ---------- language donut ---------- */
+/* ─── language donut ─────────────────────────────────── */
 function renderDonut() {
   const el = $("#donut"); el.innerHTML = "";
-  const W = el.clientWidth || 600, H = 380, RD = Math.min(W, H) / 2 - 10;
+  const W = el.clientWidth || 700, H = 380, RD = Math.min(W, H) / 2 - 10;
   const sv = d3.select(el).attr("viewBox", [0, 0, W, H]).attr("height", H);
   const g = sv.append("g").attr("transform", `translate(${W / 3},${H / 2})`);
   let data = R.languages.slice(0, 8);
@@ -542,11 +881,11 @@ function renderDonut() {
     .attr("fill", d => d.data.name === "Other" ? css("--muted") : catColor(langNames, d.data.name))
     .attr("stroke", css("--surface")).attr("stroke-width", 2)
     .on("mousemove", (e, d) => showTT(e,
-      `<div class="t">${d.data.name}</div><div class="d">${fmt(d.data.loc)} loc (${(d.data.loc / total * 100).toFixed(1)}%) · ${d.data.files} files</div>`))
+      `<div class="t">${esc(d.data.name)}</div><div class="d">${fmt(d.data.loc)} loc (${(d.data.loc / total * 100).toFixed(1)}%) · ${d.data.files} files</div>`))
     .on("mouseleave", hideTT);
   g.append("text").attr("text-anchor", "middle").attr("dy", -4)
     .attr("fill", css("--ink")).attr("font-size", 22).attr("font-weight", 700)
-    .text(fmt(R.repo.totalLoc));
+    .attr("font-family", css("--mono")).text(fmt(R.repo.totalLoc));
   g.append("text").attr("text-anchor", "middle").attr("dy", 16)
     .attr("fill", css("--muted")).attr("font-size", 11).text("lines of code");
   const leg = sv.append("g").attr("transform", `translate(${W * 0.62},${H / 2 - data.length * 11})`);
@@ -559,11 +898,11 @@ function renderDonut() {
   });
 }
 
-/* ---------- horizontal bar helper ---------- */
+/* ─── horizontal bar helper ──────────────────────────── */
 function hbar(elSel, rows, valueKey, color, tipFn) {
   const el = $(elSel); el.innerHTML = "";
   if (!rows.length) return;
-  const W = el.clientWidth || 600, rowH = 26, mL = Math.min(280, W * 0.45),
+  const W = el.clientWidth || 700, rowH = 26, mL = Math.min(280, W * 0.45),
         H = rows.length * rowH + 26;
   const sv = d3.select(el).attr("viewBox", [0, 0, W, H]).attr("height", H);
   const x = d3.scaleLinear().domain([0, d3.max(rows, r => r[valueKey]) || 1])
@@ -575,14 +914,11 @@ function hbar(elSel, rows, valueKey, color, tipFn) {
     .attr("width", d => Math.max(2, x(d[valueKey]))).attr("fill", color)
     .on("mousemove", (e, d) => showTT(e, tipFn(d))).on("mouseleave", hideTT);
   row.append("text").attr("x", -8).attr("y", rowH / 2 - 2).attr("text-anchor", "end")
-    .attr("fill", css("--ink-2")).attr("font-size", 11.5)
-    .text(d => {
-      const name = d.path.length > 38 ? "…" + d.path.slice(-37) : d.path;
-      return name;
-    });
+    .attr("fill", css("--ink-2")).attr("font-size", 11).attr("font-family", css("--mono"))
+    .text(d => d.path.length > 34 ? "…" + d.path.slice(-33) : d.path);
   row.append("text").attr("x", d => Math.max(2, x(d[valueKey])) + 6).attr("y", rowH / 2 - 2)
-    .attr("fill", css("--muted")).attr("font-size", 11)
-    .style("font-variant-numeric", "tabular-nums").text(d => fmt(d[valueKey]));
+    .attr("fill", css("--muted")).attr("font-size", 11).attr("font-family", css("--mono"))
+    .text(d => fmt(d[valueKey]));
 }
 
 function renderChurn() {
@@ -591,34 +927,36 @@ function renderChurn() {
   $("#churnNote").textContent = R.git.available
     ? (rows.length ? "" : "git history present but no per-file commits recorded")
     : "no git history available (not a git checkout, or shallow beyond reach)";
-  hbar("#churnChart", rows, "churn", css("--s7"),
+  hbar("#churnChart", rows, "churn", css("--s3"),
     d => `<div class="t">${esc(d.path)}</div><div class="d">${d.churn} commits · ${fmt(d.loc)} loc${d.authors.length ? " · " + esc(d.authors.join(", ")) : ""}</div>`);
 }
 function renderBlast() {
   const rows = R.files.filter(f => f.blast > 0)
     .sort((a, b) => b.blast - a.blast).slice(0, 14);
-  hbar("#blastChart", rows, "blast", css("--s8"),
+  hbar("#blastChart", rows, "blast", css("--s6"),
     d => `<div class="t">${esc(d.path)}</div><div class="d">a change here ripples to ${fmt(d.blast)} file(s) — ${(d.blast / (R.repo.filesAnalyzed || 1) * 100).toFixed(0)}% of the codebase</div>`);
 }
 
-/* ---------- penalties, cycles, security ---------- */
-$("#penalties").innerHTML = R.health.penalties.length
-  ? R.health.penalties.map(p => `
-    <div class="penalty" title="${esc(p.detail)}">
-      <div>${esc(p.label)}</div>
-      <div class="bar"><i style="width:${Math.min(100, p.points / 30 * 100)}%"></i></div>
-      <div class="pts">−${p.points}</div>
-    </div>
-    <div class="note" style="margin:-2px 0 8px">${esc(p.detail)}</div>`).join("")
-  : '<div class="note">No penalties — clean bill of health. 🎉</div>';
+/* ─── health & security views ────────────────────────── */
+function renderHealth() {
+  $("#penalties").innerHTML = R.health.penalties.length
+    ? R.health.penalties.map(p => `
+      <div class="penalty" title="${esc(p.detail)}">
+        <div>${esc(p.label)}</div>
+        <div class="bar"><i style="width:${Math.min(100, p.points / 30 * 100)}%"></i></div>
+        <div class="pts">−${p.points}</div>
+      </div>
+      <div class="note" style="margin:-2px 0 8px">${esc(p.detail)}</div>`).join("")
+    : '<div class="note">No penalties — clean bill of health. 🎉</div>';
 
-$("#cycles").innerHTML = R.cycles.length
-  ? R.cycles.slice(0, 12).map(c =>
-      `<div class="cycle"><b>⟳</b> ${c.slice(0, 6).map(p => `<span class="mono">${esc(p)}</span>`).join(" → ")}${c.length > 6 ? " → …" : ""}</div>`).join("") +
-    (R.cycles.length > 12 ? `<div class="note">… ${R.cycles.length - 12} more cycle groups</div>` : "")
-  : '<div class="note">None found — the import graph is acyclic. 🎉</div>';
+  $("#cycles").innerHTML = R.cycles.length
+    ? R.cycles.slice(0, 12).map(c =>
+        `<div class="cycle"><b>⟳</b> ${c.slice(0, 6).map(p => `<span class="mono">${esc(p)}</span>`).join(" → ")}${c.length > 6 ? " → …" : ""}</div>`).join("") +
+      (R.cycles.length > 12 ? `<div class="note">… ${R.cycles.length - 12} more cycle groups</div>` : "")
+    : '<div class="note">None found — the import graph is acyclic. 🎉</div>';
+}
 
-(function renderSecurity() {
+function renderSecurity() {
   const box = $("#security");
   if (!R.security.length) {
     box.innerHTML = '<div class="note">No findings. 🎉</div>';
@@ -643,22 +981,27 @@ $("#cycles").innerHTML = R.cycles.length
       <td class="mono">${esc(s.file)}:${s.line}</td><td>${esc(s.detail)}</td></tr>`).join("")}</tbody></table>` : ""}
     ${nonInfo.length > 60 ? `<div class="note">… ${nonInfo.length - 60} more findings (see JSON export)</div>` : ""}
     ${counts.info ? `<div class="note">${counts.info} info-level findings (debug statements) omitted from the table.</div>` : ""}`;
-})();
+}
 
-$("#footer").innerHTML =
-  `Generated by <a href="https://github.com/nguyenminhduc9988/repolens">repolens</a> v${R.tool.version} · ` +
-  `${R.generatedAt} · single self-contained file, no external requests · ` +
-  `inspired by <a href="https://github.com/braedonsaunders/codeflow">CodeFlow</a>`;
+/* ─── view registry + boot ───────────────────────────── */
+const VIEWS = {
+  graph: initGraph,
+  map: () => { renderTreemap(); renderDonut(); },
+  hotspots: () => { renderChurn(); renderBlast(); },
+  health: renderHealth,
+  security: renderSecurity,
+};
+showTab("graph");
 
-function renderAll() { renderTreemap(); renderDonut(); renderChurn(); renderBlast(); }
-renderAll();
-window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
-  renderAll(); paintGraph();
-  gb.style.background = GRADE_COLOR[R.health.grade] || css("--muted");
+/* re-render size-dependent charts on resize */
+let rsz;
+window.addEventListener("resize", () => {
+  clearTimeout(rsz);
+  rsz = setTimeout(() => {
+    Object.keys(rendered).forEach(k => { if (k !== "graph") delete rendered[k]; });
+    if (activeTab !== "graph") { VIEWS[activeTab](); rendered[activeTab] = true; }
+  }, 220);
 });
-window.addEventListener("resize", (() => {
-  let t; return () => { clearTimeout(t); t = setTimeout(renderAll, 200); };
-})());
 </script>
 </body>
 </html>
