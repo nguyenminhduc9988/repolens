@@ -7,10 +7,13 @@ import os
 import re
 import shutil
 import subprocess
+import tarfile
 import tempfile
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import IO, List, Optional
 
 from .languages import language_for
 
@@ -23,7 +26,9 @@ DEFAULT_EXCLUDES = [
     "Pods", "DerivedData", "cmake-build-*", "*.bundle.js", "*.chunk.js",
 ]
 
-MAX_FILE_BYTES = 1_500_000  # skip generated monsters
+MAX_FILE_BYTES = 1_500_000        # skip generated monsters
+MAX_TARBALL_BYTES = 120_000_000   # compressed download cap for snapshot mode
+MAX_TOTAL_TEXT = 250_000_000      # in-memory extracted text cap for snapshot mode
 GITHUB_RE = re.compile(
     r"^(?:https?://github\.com/)?(?P<owner>[\w.-]+)/(?P<repo>[\w.-]+?)(?:\.git)?/?$"
 )
@@ -44,7 +49,8 @@ class ScanResult:
     files: List[SourceFile] = field(default_factory=list)
     skipped: int = 0
     cloned: bool = False
-    origin: Optional[str] = None   # github url when cloned
+    origin: Optional[str] = None       # github url when fetched remotely
+    remote_snapshot: bool = False      # True = tarball streamed in memory, nothing on disk
 
 
 def _is_excluded(rel_path: str, patterns: List[str]) -> bool:
@@ -98,10 +104,79 @@ def clone_github(url: str) -> Path:
     return tmp / "repo"
 
 
-def scan(target: str, excludes: Optional[List[str]] = None, max_files: int = 6000) -> ScanResult:
+class _CappedReader:
+    """File-like wrapper that aborts once *cap* bytes have been read."""
+
+    def __init__(self, raw: IO[bytes], cap: int):
+        self.raw, self.cap, self.count = raw, cap, 0
+
+    def read(self, n: int = -1) -> bytes:
+        chunk = self.raw.read(n)
+        self.count += len(chunk)
+        if self.count > self.cap:
+            raise RuntimeError(
+                f"download exceeded {self.cap // 1_000_000} MB — repo too large for snapshot mode")
+        return chunk
+
+
+def _scan_tar_stream(fileobj: IO[bytes], name: str, origin: Optional[str],
+                     patterns: List[str], max_files: int) -> ScanResult:
+    """Build a ScanResult straight from a (gzipped) tar stream — nothing touches disk."""
+    result = ScanResult(root=Path(), name=name, origin=origin, remote_snapshot=True)
+    total_text = 0
+    with tarfile.open(mode="r|gz", fileobj=_CappedReader(fileobj, MAX_TARBALL_BYTES)) as tf:
+        for member in tf:
+            if not member.isfile():
+                continue
+            # strip the "{repo}-{sha}/" prefix GitHub puts on every entry
+            rel = member.name.split("/", 1)[1] if "/" in member.name else ""
+            if not rel or _is_excluded(rel, patterns):
+                continue
+            lang = language_for(rel)
+            if not lang:
+                continue
+            if member.size > MAX_FILE_BYTES:
+                result.skipped += 1
+                continue
+            if len(result.files) >= max_files or total_text > MAX_TOTAL_TEXT:
+                result.skipped += 1
+                break                      # stop reading — also stops the download
+            fh = tf.extractfile(member)
+            if fh is None:
+                result.skipped += 1
+                continue
+            text = fh.read().decode("utf-8", errors="replace")
+            total_text += len(text)
+            loc = sum(1 for line in text.splitlines() if line.strip())
+            result.files.append(SourceFile(path=rel, language=lang, text=text, loc=loc))
+    return result
+
+
+def scan_github_tarball(url: str, name: str, patterns: List[str], max_files: int) -> ScanResult:
+    """Fetch *url*'s default branch as a tarball snapshot and scan it in memory."""
+    m = GITHUB_RE.match(url)
+    if not m:
+        raise ValueError(f"not a GitHub repo url: {url}")
+    tar_url = f"https://codeload.github.com/{m.group('owner')}/{m.group('repo')}/tar.gz/HEAD"
+    req = urllib.request.Request(tar_url, headers={"User-Agent": "repolens"})
+    try:
+        resp = urllib.request.urlopen(req, timeout=60)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            raise RuntimeError(f"{name} not found on GitHub (private repos need a git clone)") from e
+        raise RuntimeError(f"GitHub snapshot download failed: HTTP {e.code}") from e
+    with resp:
+        return _scan_tar_stream(resp, name, url, patterns, max_files)
+
+
+def scan(target: str, excludes: Optional[List[str]] = None, max_files: int = 6000,
+         prefer_tarball: bool = False) -> ScanResult:
     """Scan *target* (path, owner/repo, or GitHub URL) and load supported source files."""
     root, github_url, name = resolve_target(target)
     cloned = False
+    if github_url and prefer_tarball:
+        patterns = list(DEFAULT_EXCLUDES) + list(excludes or [])
+        return scan_github_tarball(github_url, name, patterns, max_files)
     if github_url:
         root = clone_github(github_url)
         cloned = True

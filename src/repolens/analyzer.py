@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from . import __version__
-from .gitstats import collect_git_stats
+from .gitstats import GitStats, collect_git_stats
 from .graph import build_graph
 from .health import compute_health
 from .languages import extract_functions, extract_imports
@@ -20,9 +20,11 @@ GIANT_LOC = 600
 
 
 def analyze(target: str, excludes: Optional[List[str]] = None,
-            max_files: int = 6000, keep_clone: bool = False) -> Dict:
+            max_files: int = 6000, keep_clone: bool = False,
+            prefer_tarball: bool = False) -> Dict:
     """Analyze *target* and return the full report model."""
-    scanned = scan(target, excludes=excludes, max_files=max_files)
+    scanned = scan(target, excludes=excludes, max_files=max_files,
+                   prefer_tarball=prefer_tarball)
     try:
         return _build_report(scanned)
     finally:
@@ -35,7 +37,8 @@ def _build_report(scanned: ScanResult) -> Dict:
     imports = {i: extract_imports(f.language, f.text) for i, f in enumerate(files)}
     graph = build_graph(files, imports)
     findings = scan_security(files)
-    git = collect_git_stats(scanned.root)
+    # snapshot mode has no checkout on disk — churn/ownership degrade gracefully
+    git = GitStats() if scanned.remote_snapshot else collect_git_stats(scanned.root)
 
     file_records = []
     total_functions = 0
@@ -94,7 +97,7 @@ def _build_report(scanned: ScanResult) -> Dict:
         "repo": {
             "name": scanned.name,
             "origin": scanned.origin,
-            "root": str(scanned.root),
+            "root": None if scanned.remote_snapshot else str(scanned.root),
             "filesAnalyzed": n,
             "filesSkipped": scanned.skipped,
             "totalLoc": sum(f.loc for f in files),

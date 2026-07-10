@@ -36,6 +36,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="extra exclude glob (repeatable), e.g. -x 'docs/**' -x '*.gen.ts'")
     p.add_argument("--max-files", type=int, default=6000,
                    help="cap on number of analyzed files (default: 6000)")
+    p.add_argument("--tarball", action="store_true",
+                   help="fetch GitHub targets as a snapshot tarball streamed in memory — "
+                        "no git clone, no disk writes, no history/churn stats")
     p.add_argument("--no-open", action="store_true",
                    help="do not open the HTML report in a browser")
     p.add_argument("--no-html", action="store_true",
@@ -50,7 +53,8 @@ def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
 
     try:
-        report = analyze(args.target, excludes=args.exclude, max_files=args.max_files)
+        report = analyze(args.target, excludes=args.exclude, max_files=args.max_files,
+                         prefer_tarball=args.tarball)
     except FileNotFoundError as e:
         print(f"repolens: {e}", file=sys.stderr)
         return 2

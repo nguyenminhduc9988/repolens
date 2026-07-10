@@ -229,3 +229,48 @@ def test_cli_bad_target():
     )
     assert proc.returncode == 2
     assert "neither" in proc.stderr
+
+
+def test_tar_stream_scan():
+    import io
+    import tarfile
+
+    from repolens.scanner import DEFAULT_EXCLUDES, MAX_FILE_BYTES, _scan_tar_stream
+
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        def add(name, data):
+            info = tarfile.TarInfo(name=name)
+            info.size = len(data)
+            tf.addfile(info, io.BytesIO(data))
+        add("repo-abc123/src/app.py", b"import os\nx = 1\n")
+        add("repo-abc123/src/util.py", b"from . import app\n")
+        add("repo-abc123/node_modules/dep/index.js", b"module.exports = 1\n")  # excluded dir
+        add("repo-abc123/README.md", b"# hi\n")                                # unsupported lang
+        add("repo-abc123/big.py", b"x" * (MAX_FILE_BYTES + 1))                 # over per-file cap
+    buf.seek(0)
+
+    result = _scan_tar_stream(buf, "repo", "https://github.com/o/repo",
+                              list(DEFAULT_EXCLUDES), max_files=100)
+    paths = sorted(f.path for f in result.files)
+    assert paths == ["src/app.py", "src/util.py"]
+    assert result.skipped == 1          # the oversized file
+    assert result.remote_snapshot and not result.cloned
+
+
+def test_tar_stream_max_files_cap():
+    import io
+    import tarfile
+
+    from repolens.scanner import _scan_tar_stream
+
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        for i in range(10):
+            data = b"x = 1\n"
+            info = tarfile.TarInfo(name=f"r-sha/{i}.py")
+            info.size = len(data)
+            tf.addfile(info, io.BytesIO(data))
+    buf.seek(0)
+    result = _scan_tar_stream(buf, "r", None, [], max_files=3)
+    assert len(result.files) == 3

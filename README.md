@@ -86,6 +86,8 @@ target                 local path, owner/repo, or GitHub URL (default: .)
     --json [FILE]      dump the full analysis model as JSON (stdout if no FILE)
 -x, --exclude PATTERN  extra exclude glob, repeatable (e.g. -x 'docs/**')
     --max-files N      cap analyzed files (default: 6000)
+    --tarball          fetch GitHub repos as a snapshot streamed in memory —
+                       ~10x faster, zero disk writes, but no churn/ownership stats
     --no-open          don't auto-open the report in a browser
     --no-html          terminal summary only
 -q, --quiet            no terminal summary
