@@ -206,6 +206,20 @@ a { color: var(--accent-2); text-decoration: none; }
 .hud-chip .dot { width: 8px; height: 8px; border-radius: 50%; }
 .hud-chip label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
 #graphNote { color: var(--muted); font-family: var(--mono); font-size: 10px; }
+.hud-search { padding: 3px 11px; }
+.hud-search .ic { color: var(--muted); }
+.hud-search input {
+  background: transparent; border: 0; outline: none; color: var(--ink);
+  font: 11.5px var(--mono); width: 130px; transition: width .2s var(--ease);
+}
+.hud-search input:focus { width: 210px; }
+.hud-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+.hud-tip {
+  position: absolute; left: 14px; bottom: 12px; pointer-events: none;
+  color: var(--muted); font: 10.5px var(--mono);
+  background: rgba(18,18,26,.75); backdrop-filter: blur(4px);
+  border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px;
+}
 
 /* generic view padding + cards */
 .pad { padding: 18px; display: grid; gap: 16px; }
@@ -369,10 +383,12 @@ td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: 
     <div class="view fill" id="view-graph">
       <svg id="graph"></svg>
       <div class="canvas-hud">
-        <span class="hud-chip"><label><input type="checkbox" id="lblToggle"> labels</label></span>
+        <span class="hud-chip hud-search"><span class="ic">⌕</span><input id="graphSearch" type="search" placeholder="find a node…" aria-label="search files in graph"></span>
+        <span class="hud-chip"><label><input type="checkbox" id="lblToggle"> all labels</label></span>
         <span id="graphLegend" style="display:contents"></span>
         <span class="hud-chip" id="graphNoteWrap" style="display:none"><span id="graphNote"></span></span>
       </div>
+      <div class="hud-tip" id="hudTip">labels: hubs by default · zoom in or search to reveal more · scroll to zoom, drag to pan</div>
     </div>
     <div class="view" id="view-map">
       <div class="pad">
@@ -624,13 +640,38 @@ function computeBlast(id) {
 const tid = (x) => typeof x === "object" ? x.id : x;
 
 let sim, nodeSel, linkSel, labelSel, zoomG;
+let zoomK = 1, query = "";
+// hubs: the most-connected files get a permanent label so big graphs aren't anonymous
+const degOf = (f) => f.imports.length + f.importedBy.length;
+const hubSet = new Set(files.slice()
+  .sort((a, b) => degOf(b) - degOf(a) || b.loc - a.loc)
+  .slice(0, Math.min(40, Math.ceil(files.length * 0.15)))
+  .map(f => f.id));
+const matches = (d) => d.path.toLowerCase().includes(query);
+function labelVisible(d) {
+  if (query) return matches(d);
+  if ($("#lblToggle").checked) return true;
+  if (selected && (d.id === selected.id || neighborSet.has(d.id))) return true;
+  if (zoomK >= 1.5) return true;               // zoomed in → reveal everything
+  return hubSet.has(d.id);
+}
+function updateLabels() {
+  if (labelSel) labelSel.style("display", d => labelVisible(d) ? null : "none");
+}
+
 function initGraph() {
   const box = $("#view-graph").getBoundingClientRect();
   const gw = Math.max(320, box.width), gh = Math.max(320, box.height);
   const svg = d3.select("#graph");
   svg.attr("viewBox", [0, 0, gw, gh]);
   zoomG = svg.append("g");
-  const zoom = d3.zoom().scaleExtent([0.15, 8]).on("zoom", (e) => zoomG.attr("transform", e.transform));
+  let zoomWasIn = false;
+  const zoom = d3.zoom().scaleExtent([0.15, 8]).on("zoom", (e) => {
+    zoomG.attr("transform", e.transform);
+    zoomK = e.transform.k;
+    const zoomIn = zoomK >= 1.5;
+    if (zoomIn !== zoomWasIn) { zoomWasIn = zoomIn; updateLabels(); }
+  });
   svg.call(zoom);
 
   const small = files.length <= 130;   // small graphs get labels + roomier layout
@@ -659,8 +700,10 @@ function initGraph() {
     .attr("font-size", small ? 10.5 : 9.5).attr("fill", css("--ink-2")).attr("font-family", css("--mono"))
     .attr("dx", d => rScale(d.loc) + 4).attr("dy", 3.5)
     .attr("paint-order", "stroke").attr("stroke", css("--bg")).attr("stroke-width", 3)
-    .style("display", small ? null : "none").style("pointer-events", "none");
-  if (small) $("#lblToggle").checked = true;
+    .style("pointer-events", "none");
+  if (small) $("#hudTip").style.display = "none";
+  $("#lblToggle").checked = small;
+  updateLabels();
 
   sim.on("tick", () => {
     linkSel.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
@@ -682,8 +725,7 @@ function initGraph() {
   svg.on("click", () => selectNode(null));
 
   if (droppedNote) { $("#graphNote").textContent = droppedNote; $("#graphNoteWrap").style.display = ""; }
-  $("#lblToggle").addEventListener("change", (e) =>
-    labelSel.style("display", e.target.checked ? null : "none"));
+  $("#lblToggle").addEventListener("change", updateLabels);
   paintGraph();
 
   // settle, then zoom-to-fit the whole constellation
@@ -703,8 +745,13 @@ function paintGraph() {
   if (!nodeSel) return;
   nodeSel.attr("fill", d => nodeColor(d))
     .style("filter", d => selected && d.id === selected.id ? `drop-shadow(0 0 8px ${css("--accent-2")})` : null)
-    .attr("opacity", d => selected && mode !== "blast"
-      ? (d.id === selected.id || neighborSet.has(d.id) ? 1 : 0.15) : 1);
+    .attr("stroke", d => query && matches(d) ? css("--accent-2") : css("--bg"))
+    .attr("stroke-width", d => query && matches(d) ? 2.2 : 1.2)
+    .attr("opacity", d => {
+      if (query) return matches(d) ? 1 : 0.08;
+      return selected && mode !== "blast"
+        ? (d.id === selected.id || neighborSet.has(d.id) ? 1 : 0.15) : 1;
+    });
   linkSel.attr("stroke", d => {
       if (!selected) return css("--border-hi");
       if (tid(d.target) === selected.id) return css("--accent");    // dependents flow in
@@ -742,22 +789,25 @@ $("#modeSeg").querySelectorAll("button").forEach(b => b.addEventListener("click"
   paintGraph();
 }));
 
-/* search */
-$("#search").addEventListener("input", (e) => {
-  if (activeTab !== "graph") showTab("graph");
-  if (!nodeSel) return;
-  const q = e.target.value.trim().toLowerCase();
-  if (!q) { nodeSel.attr("opacity", 1); if (!selected) paintGraph(); return; }
-  nodeSel.attr("opacity", d => d.path.toLowerCase().includes(q) ? 1 : 0.1);
-});
-$("#search").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    const q = e.target.value.trim().toLowerCase();
-    const hit = files.find(d => d.path.toLowerCase().includes(q));
-    if (hit) selectNode(hit);
-  }
-  if (e.key === "Escape") { e.target.value = ""; e.target.dispatchEvent(new Event("input")); e.target.blur(); }
-});
+/* search — sidebar + on-canvas inputs share state; matches glow and get labeled */
+function bindSearch(el, twin) {
+  el.addEventListener("input", () => {
+    if (activeTab !== "graph") showTab("graph");
+    query = el.value.trim().toLowerCase();
+    if (twin.value !== el.value) twin.value = el.value;
+    paintGraph();
+    updateLabels();
+  });
+  el.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const hit = files.find(matches);
+      if (hit) selectNode(hit);
+    }
+    if (e.key === "Escape") { el.value = ""; el.dispatchEvent(new Event("input")); el.blur(); }
+  });
+}
+bindSearch($("#search"), $("#graphSearch"));
+bindSearch($("#graphSearch"), $("#search"));
 document.addEventListener("keydown", (e) => {
   if (e.key === "/" && document.activeElement.tagName !== "INPUT") { e.preventDefault(); $("#search").focus(); }
   if (e.key === "Escape" && document.activeElement.tagName !== "INPUT") selectNode(null);
@@ -825,6 +875,7 @@ function selectNode(f) {
     $("#panel").innerHTML = EMPTY_PANEL;
   }
   paintGraph();
+  updateLabels();   // selected node + neighbors always get name annotations
 }
 
 /* ─── treemap ────────────────────────────────────────── */
